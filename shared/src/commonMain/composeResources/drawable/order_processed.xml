@@ -1,0 +1,70 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Document outline -->
+    <path
+        android:pathData="M14,3H5C4.448,3 4,3.448 4,4V20C4,20.552 4.448,21 5,21H14M17,3H14V16"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#F06292"
+        android:strokeLineCap="round"/>
+
+    <!-- Checkmark 1 -->
+    <path
+        android:pathData="M6.3,7.3L7.3,8.3L9,6.6"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#F06292"
+        android:strokeLineCap="round"/>
+
+    <!-- Line 1 -->
+    <path
+        android:pathData="M10.5,7H15"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#F06292"
+        android:strokeLineCap="round"/>
+
+    <!-- Checkmark 2 -->
+    <path
+        android:pathData="M6.3,11.8L7.3,12.8L9,11.1"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#F06292"
+        android:strokeLineCap="round"/>
+
+    <!-- Line 2 -->
+    <path
+        android:pathData="M10.5,11.5H15"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#F06292"
+        android:strokeLineCap="round"/>
+
+    <!-- Gear outer teeth -->
+    <path
+        android:pathData="M17.43,13.5L18.1,12.2C18.28,11.86 18.7,11.75 19.02,11.94L19.9,12.45C20.22,12.64 20.33,13.05 20.14,13.37L19.47,14.5M17.43,13.5C16.9,13.85 16.5,14.4 16.35,15.05M17.43,13.5L16.35,15.05M19.47,14.5C19.7,15.05 19.7,15.65 19.5,16.2M19.47,14.5L20.7,14.9C21.05,15.01 21.24,15.38 21.13,15.73L20.8,16.75C20.69,17.1 20.32,17.29 19.97,17.18L18.75,16.78M19.5,16.2C19.3,16.75 18.9,17.2 18.35,17.5M19.5,16.2L18.75,16.78M18.35,17.5L18.9,18.7C19.05,19.03 18.9,19.42 18.57,19.57L17.55,20.02C17.22,20.17 16.83,20.02 16.68,19.69L16.15,18.5M18.35,17.5L16.15,18.5M16.15,18.5C15.55,18.6 14.95,18.5 14.45,18.2M16.15,18.5L14.45,18.2M14.45,18.2L13.5,19.1C13.24,19.35 12.83,19.34 12.58,19.08L11.83,18.3C11.58,18.04 11.59,17.63 11.85,17.38L12.8,16.5M14.45,18.2L12.8,16.5M12.8,16.5C12.5,15.98 12.36,15.4 12.4,14.8M12.8,16.5L12.4,14.8M12.4,14.8L11.1,14.4C10.75,14.29 10.56,13.92 10.67,13.57L11,12.55C11.11,12.2 11.48,12.01 11.83,12.12L13.1,12.52M12.4,14.8L13.1,12.52M13.1,12.52C13.5,12.05 14.02,11.72 14.6,11.55M13.1,12.52L14.6,11.55M14.6,11.55L14.5,10.25C14.47,9.89 14.75,9.58 15.11,9.56L16.18,9.5C16.54,9.48 16.85,9.75 16.88,10.11L16.98,11.4M14.6,11.55L16.98,11.4M16.98,11.4C17.55,11.53 18.05,11.82 18.43,12.22"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.4"
+        android:fillColor="#00000000"
+        android:strokeColor="#E91E63"
+        android:strokeLineCap="round"/>
+
+    <!-- Gear inner refresh arrow (processing) -->
+    <path
+        android:pathData="M16.8,17C15.75,17.5 14.5,17.15 13.85,16.15C13.15,15.1 13.4,13.65 14.45,12.9M15.8,13L16.9,12.7L16.7,14"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.4"
+        android:fillColor="#00000000"
+        android:strokeColor="#E91E63"
+        android:strokeLineCap="round"/>
+
+</vector>

@@ -1,0 +1,202 @@
+package org.example.adminfoodapp.presentation.orderdetailsscreen
+
+import TextColor
+import adminfoodapp.shared.generated.resources.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.Font
+import org.jetbrains.compose.resources.painterResource
+
+// Data Model for Ordered Item
+data class OrderItem(
+    val name: String,
+    val quantity: String,
+    val price: String
+)
+
+@Composable
+fun OrderDetailsScreen() {
+    // Dummy Data
+    val orderedItems = listOf(
+        OrderItem("Spacy fresh crab", "2", "$30"),
+        OrderItem("Burger Special", "1", "$10"),
+        OrderItem("Italian Pasta", "3", "$60")
+    )
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            
+            // Header Section
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                    .statusBarsPadding(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.arrow_left),
+
+                    contentDescription = "Back",
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable {  }
+                )
+                
+                Text(
+                    text = "Order Details",
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                        fontSize = 34.sp,
+                        color = Color.Black
+                    )
+                )
+            }
+
+            // Scrollable Content
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 20.dp)
+            ) {
+                // Customer Info Fields
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        OrderDetailInfoField(label = "Name", value = "Hammad Baloch")
+                        OrderDetailInfoField(label = "Address", value = "Street 12, Main City")
+                        OrderDetailInfoField(label = "Phone", value = "0300-1234567")
+                        OrderDetailInfoField(label = "Total Price", value = "$100")
+                        
+                        // Optional: Cancel By (Hidden by default in XML)
+                        // OrderDetailInfoField(label = "Cancel By", value = "Admin")
+
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                }
+
+                // Ordered Items List
+                items(orderedItems) { item ->
+                    OrderedItemCard(item)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OrderDetailInfoField(label: String, value: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+            //.height(56.dp),
+        shape = RoundedCornerShape(15.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                modifier = Modifier.width(100.dp),
+                fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                fontSize = 16.sp,
+                color = Color.Black
+            )
+            
+            Text(
+                text = value,
+                modifier = Modifier.weight(1f),
+                fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+@Composable
+fun OrderedItemCard(item: OrderItem) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Food Image
+            Surface(
+                modifier = Modifier.size(70.dp),
+                shape = RoundedCornerShape(15.dp),
+                color = Color(0xFFF0F0F0)
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.logo), // Use menu1
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                    fontSize = 18.sp,
+                    color = Color.Black
+                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Quantity: ",
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                        fontSize = 14.sp,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = item.quantity,
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                        fontSize = 16.sp,
+                        color = TextColor
+                    )
+                }
+            }
+
+            Text(
+                text = item.price,
+                fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                fontSize = 20.sp,
+                color = TextColor,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+        }
+    }
+}
