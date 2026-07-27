@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 data class UserModel(
     val key: String? = null,
     val name: String? = null,
-    val email: String? = null,
     val password: String? = null,
     val admin: Boolean? = false,
     val userAccess: Boolean? = false

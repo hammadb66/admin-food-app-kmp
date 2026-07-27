@@ -1,55 +1,102 @@
 package org.example.adminfoodapp.presentation.additemscreen
 
-import TextColor
 import adminfoodapp.shared.generated.resources.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.core.PickerMode
+import io.github.vinceglb.filekit.core.PickerType
+import kotlinx.coroutines.launch
+import org.example.adminfoodapp.data.model.AllMenu
+import org.example.adminfoodapp.presentation.edititemscreen.AddItemTextField
+import org.example.adminfoodapp.utils.UploadState
+import org.example.adminfoodapp.utils.rememberBitmapFromBytes // 👈 Import Added
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun AddItemScreen() {
+fun AddItemScreen(
+    navController: NavHostController,
+
+) {
+    val viewModel: AddItemViewModel = koinViewModel()
     var foodName by remember { mutableStateOf("") }
     var foodPrice by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var ingredients by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    val uploadState by viewModel.uploadState.collectAsState()
     val scrollState = rememberScrollState()
-    val goldAccent = Color(0xFFD4AF37) // Gold Accent from XML
+
+    val goldAccent = Color(0xFFD4AF37)
     val darkGray = Color(0xFF333333)
+
+    val singleImagePicker = rememberFilePickerLauncher(
+        type = PickerType.Image,
+        mode = PickerMode.Single
+    ) { file ->
+        file?.let {
+            scope.launch {
+                selectedImageBytes = it.readBytes()
+            }        }
+    }
+
+    LaunchedEffect(uploadState) {
+        when (uploadState) {
+            is UploadState.Success -> {
+                viewModel.resetState()
+                navController.navigateUp()
+            }
+            is UploadState.Error -> {
+                errorMessage = (uploadState as UploadState.Error).message
+            }
+            else -> Unit
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(scrollState)
         ) {
-            // Hero Image Section
+            // HERO IMAGE SECTION
             Box(
                 modifier = Modifier.fillMaxWidth().height(280.dp)
             ) {
-                // Background Image Placeholder
-                Image(
-                    painter = painterResource(Res.drawable.image_placeholder), // Use image_placeholder
-                    contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
-                )
+                if (selectedImageBytes != null) {
+                    Image(
+                        bitmap = rememberBitmapFromBytes(selectedImageBytes!!),
+                        contentDescription = "Selected Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(Res.drawable.image_placeholder),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
 
-                // Top Gradient Scrim
                 Box(
                     modifier = Modifier.fillMaxWidth().height(100.dp).background(
                         Brush.verticalGradient(
@@ -58,13 +105,12 @@ fun AddItemScreen() {
                     )
                 )
 
-                // Back Button & Title
                 Row(
                     modifier = Modifier.padding(16.dp).statusBarsPadding(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { },
+                        onClick = { navController.navigateUp() },
                         modifier = Modifier.size(45.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)
                     ) {
                         Icon(painterResource(Res.drawable.arrow_left), contentDescription = "Back", tint = Color.White)
@@ -80,12 +126,11 @@ fun AddItemScreen() {
                     )
                 }
 
-                // Floating Change Image Button
                 Box(
                     modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 40.dp, end = 20.dp)
                 ) {
                     SmallFloatingActionButton(
-                        onClick = { /* Select Image */ },
+                        onClick = { singleImagePicker.launch() },
                         containerColor = goldAccent,
                         contentColor = Color.White,
                         shape = CircleShape,
@@ -96,15 +141,16 @@ fun AddItemScreen() {
                 }
             }
 
-            // Form Sheet Section
+            // FORM SHEET SECTION
             Surface(
-                modifier = Modifier.fillMaxWidth().offset(y = (-30).dp), // Overlap effect
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), color = Color.White, tonalElevation = 8.dp
+                modifier = Modifier.fillMaxWidth().offset(y = (-30).dp),
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                color = Color.White,
+                tonalElevation = 8.dp
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)
                 ) {
-                    // Drag Handle
                     Box(
                         modifier = Modifier.width(50.dp).height(5.dp)
                             .background(Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
@@ -113,7 +159,15 @@ fun AddItemScreen() {
 
                     Spacer(modifier = Modifier.height(30.dp))
 
-                    // Form Fields
+                    errorMessage?.let { msg ->
+                        Text(
+                            text = msg,
+                            color = Color.Red,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
+
                     AddItemTextField(
                         value = foodName,
                         onValueChange = { foodName = it },
@@ -179,9 +233,28 @@ fun AddItemScreen() {
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Add Item Button
                     Button(
-                        onClick = { /* Add Item Action */ },
+                        onClick = {
+                            if (foodName.isBlank() || foodPrice.isBlank() || description.isBlank() || ingredients.isBlank()) {
+                                errorMessage = "Please fill all fields"
+                                return@Button
+                            }
+                            if (selectedImageBytes == null) {
+                                errorMessage = "Please select an image"
+                                return@Button
+                            }
+
+                            errorMessage = null
+                            val item = AllMenu(
+                                key = "",
+                                foodName = foodName.trim(),
+                                foodPrice = foodPrice.trim(),
+                                foodDescription = description.trim(),
+                                foodIngredient = ingredients.trim(),
+                                foodImage = ""
+                            )
+                            viewModel.uploadItem(item, selectedImageBytes!!)
+                        },
                         modifier = Modifier.fillMaxWidth().height(65.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
@@ -197,27 +270,14 @@ fun AddItemScreen() {
                 }
             }
         }
-    }
-}
 
-@Composable
-fun AddItemTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    accentColor: Color,
-    keyboardType: KeyboardType = KeyboardType.Text
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        label = { Text(label) },
-        shape = RoundedCornerShape(14.dp),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = accentColor, focusedLabelColor = accentColor
-        )
-    )
+        if (uploadState is UploadState.Loading) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = goldAccent)
+            }
+        }
+    }
 }

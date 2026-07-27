@@ -28,4 +28,6 @@ class AuthRepositoryImpl(
 
     override suspend fun updateUserAccess(user: List<UserModel>) =
         dataSource.updateUserAccess(user)
+
+    override suspend fun sessionOut() = dataSource.sessionOut()
 }

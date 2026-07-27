@@ -12,6 +12,7 @@ actual val platformModule: Module = module {
     single<Any> { Application() }
     single<Settings> {
         PreferencesSettings(Preferences.userRoot().node("admin_food_app_prefs"))
-    }
-    single { NetworkMonitor() }   // ✅ ye line add karo
+    }  //for share preference
+
+    single { NetworkMonitor() }  //for networkMonitor
 }

@@ -23,11 +23,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-fun CreateUserScreen(onBack: () -> Unit = {}) {
+fun CreateUserScreen( navController: NavHostController) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -52,7 +53,7 @@ fun CreateUserScreen(onBack: () -> Unit = {}) {
                     contentDescription = "Back",
                     modifier = Modifier
                         .size(24.dp)
-                        .clickable { onBack() }
+                        .clickable { navController.navigateUp() }
                 )
             }
 

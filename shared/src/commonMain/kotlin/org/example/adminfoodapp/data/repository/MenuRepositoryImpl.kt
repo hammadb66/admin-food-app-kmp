@@ -12,14 +12,18 @@ class MenuRepositoryImpl(
     private val dataSource: FirebaseMenuDataSource
 ) : MenuRepository {
 
-    override suspend fun addMenu(item: AllMenu, file: File): Result<Unit> =
-        dataSource.addMenu(item, file)
 
-    override fun getMenuItems(): Flow<Resource<MutableList<AllMenu>>> =
-        dataSource.getMenuItems()
+    override fun getMenuItems(): Flow<Resource<MutableList<AllMenu>>> = dataSource.getMenuItems()
 
-    override fun getOrderHistory(): Flow<Resource<MutableList<OrderDetails>>> =
-        dataSource.getOrderHistory()
+    override suspend fun addMenu(
+        item: AllMenu, imageBytes: ByteArray
+    ): Result<Unit> = dataSource.addMenu(item, imageBytes)
+
+    override suspend fun updateMenuItem(
+        item: AllMenu, newImageBytes: ByteArray?
+    ): Result<Unit> = dataSource.updateMenu(item, newImageBytes)
+
+    override fun getOrderHistory(): Flow<Resource<MutableList<OrderDetails>>> = dataSource.getOrderHistory()
 
     override fun orderAccepted(orderDetails: OrderDetails): Flow<Resource<Unit>> =
         dataSource.orderAccepted(orderDetails)
@@ -27,13 +31,9 @@ class MenuRepositoryImpl(
     override fun orderDispatch(orderDetails: OrderDetails): Flow<Resource<Unit>> =
         dataSource.orderDispatch(orderDetails)
 
-    override fun getCompleteOrder(): Flow<Resource<MutableList<OrderDetails>>> =
-        dataSource.getCompleteOrder()
+    override fun getCompleteOrder(): Flow<Resource<MutableList<OrderDetails>>> = dataSource.getCompleteOrder()
 
     override fun menuItemDelete(id: String) = dataSource.menuItemDelete(id)
-
-    override suspend fun updateMenuItem(item: AllMenu, newFile: File?) =
-        dataSource.updateMenu(item, newFile)
 
     override fun cancelOrder(orderDetails: OrderDetails) = dataSource.cancelOrder(orderDetails)
 

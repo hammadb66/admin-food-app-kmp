@@ -11,5 +11,7 @@ interface AuthRepository {
     fun getUsers(): Flow<Resource<List<UserModel>>>
     fun updateUser(user: UserModel): Flow<Resource<Unit>>
     suspend fun reauthenticate(password: String): Resource<Unit>
-    suspend fun updateUserAccess(user: List<UserModel>): Flow<Resource<Unit>>
+    suspend fun updateUserAccess(user: List<UserModel>): Resource<Unit>
+
+   suspend fun sessionOut()
 }

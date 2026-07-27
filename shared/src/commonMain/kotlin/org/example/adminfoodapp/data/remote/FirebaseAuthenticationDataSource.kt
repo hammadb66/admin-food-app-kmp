@@ -1,302 +1,170 @@
 package org.example.adminfoodapp.data.remote
 
-import org.example.adminfoodapp.data.model.UserModel
-import org.example.adminfoodapp.utils.Resource
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.FirebaseApp
-import dev.gitlive.firebase.app
-import dev.gitlive.firebase.initialize
-import dev.gitlive.firebase.auth.EmailAuthProvider
-import dev.gitlive.firebase.auth.FirebaseAuth
-import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
-import dev.gitlive.firebase.auth.FirebaseAuthRecentLoginRequiredException
-import dev.gitlive.firebase.auth.auth
+import android.util.Log
 import dev.gitlive.firebase.database.DatabaseReference
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.data.model.UserModel
+import org.example.adminfoodapp.utils.Resource
+import org.example.adminfoodapp.utils.SessionManager
 
 class FirebaseAuthenticationDataSource(
-    private val auth: FirebaseAuth,
-    private val db: DatabaseReference,
-    private val context: Any   // Koin se aata hai — Android Context ya dummy Application() (desktop)
+    private val db: DatabaseReference, private val sessionManager: SessionManager
 ) {
 
-    fun signUp(user: UserModel): Flow<Resource<Unit>> = callbackFlow {
-        trySend(Resource.Loading)
-        val secondaryAppName = "AdminUserCreator"
-
-        val secondaryApp: FirebaseApp = try {
-            Firebase.app(secondaryAppName)
-        } catch (e: Exception) {
-            Firebase.initialize(
-                context = context,
-                options = Firebase.app.options,
-                name = secondaryAppName
-            )
-        }
-
-        val secondaryAuth = Firebase.auth(secondaryApp)
-
+    fun signUp(user: UserModel): Flow<Resource<Unit>> = flow {
+        emit(Resource.Loading)
         try {
-            val result = secondaryAuth.createUserWithEmailAndPassword(user.email!!, user.password!!)
-            val newUid = result.user?.uid
-
-            if (newUid.isNullOrBlank()) {
-                trySend(Resource.Error("Failed to retrieve new user UID."))
-                secondaryAuth.signOut()
-                awaitClose()
-                return@callbackFlow
+            val normalizedName = user.name?.trim()
+            if (normalizedName.isNullOrBlank()) {
+                emit(Resource.Error("Username is required"))
+                return@flow
             }
 
-            try {
-                result.user?.sendEmailVerification()
-            } catch (emailException: Exception) {
-                trySend(Resource.Error("User created, but verification email failed: ${emailException.message}"))
-                secondaryAuth.signOut()
+            // ✅ Duplicate check ab naam se
+            val existingSnapshot = db.child("admin").orderByChild("name").equalTo(normalizedName).valueEvents.first()
+
+            if (existingSnapshot.exists) {
+                emit(Resource.Error("Is username se user pehle se maujood hai."))
+                return@flow
+            }
+
+            val key = db.child("admin").push().key ?: return@flow emit(Resource.Error("Failed to generate user key"))
+
+            val userWithKey = user.copy(key = key, name = normalizedName)
+            db.child("admin").child(key).setValue(userWithKey)
+            emit(Resource.Success(Unit))
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Sign up failed"))
+        }
+    }
+
+    fun login(username: String, password: String): Flow<Resource<UserModel>> = callbackFlow {
+        trySend(Resource.Loading)
+        try {
+            val normalizedName = username.trim()
+
+            val snapshot = db.child("admin").orderByChild("name").equalTo(normalizedName).valueEvents.first()
+
+            var matchedUser: UserModel? = null
+            for (child in snapshot.children) {
+                val candidate = child.value<UserModel?>()
+                if (candidate?.password == password) {
+                    matchedUser = candidate
+                    break
+                }
+            }
+
+            if (matchedUser == null) {
+                trySend(Resource.Error("Invalid username or password"))
                 close()
                 return@callbackFlow
             }
 
-            val userWithKey = user.copy(key = newUid)
-
-            saveUser(userWithKey).collect { result ->
-                when (result) {
-                    is Resource.Success -> trySend(Resource.Success(Unit))
-                    is Resource.Error -> trySend(Resource.Error(result.message))
-                    else -> {}
-                }
-            }
-            secondaryAuth.signOut()
-        } catch (e: Exception) {
-            trySend(Resource.Error(e.message ?: "Sign up failed due to an unknown error."))
-        }
-        awaitClose()
-    }
-
-    fun saveUser(saveUser: UserModel): Flow<Resource<Unit>> = callbackFlow {
-        trySend(Resource.Loading)
-        try {
-            db.child("admin").child(saveUser.key!!).setValue(saveUser)
-            trySend(Resource.Success(Unit))
+            sessionManager.saveCurrentUserKey(matchedUser.key ?: "")
+            trySend(Resource.Success(matchedUser))
             close()
         } catch (e: Exception) {
-            trySend(Resource.Error("Issue in creating user"))
+            trySend(Resource.Error(e.message ?: "Login failed"))
             close()
         }
         awaitClose()
-    }
-
-    fun login(email: String, password: String): Flow<Resource<UserModel>> = callbackFlow {
-        trySend(Resource.Loading)
-
-        try {
-            auth.signInWithEmailAndPassword(email, password)
-        } catch (e: Exception) {
-            trySend(Resource.Error("Login failed: ${e.message}"))
-            close()
-            return@callbackFlow
-        }
-
-        val user = auth.currentUser
-        if (user == null) {
-            trySend(Resource.Error("User session not found."))
-            close()
-            return@callbackFlow
-        }
-
-        if (!user.isEmailVerified) {
-            trySend(Resource.Error("Please verify your email before logging in."))
-            auth.signOut()
-            close()
-            return@callbackFlow
-        }
-
-        val userRef = db.child("admin").child(user.uid)
-
-        val job = launch {
-            try {
-                userRef.valueEvents.collect { snapshot ->
-                    val admin = snapshot.value<UserModel?>()
-                    if (admin != null) {
-                        trySend(Resource.Success(admin))
-                    } else {
-                        trySend(Resource.Error("User data is empty."))
-                    }
-                }
-            } catch (e: Exception) {
-                trySend(Resource.Error(e.message.toString()))
-            }
-        }
-
-        awaitClose { job.cancel() }
     }
 
     fun currentUser(): Flow<Resource<UserModel>> = callbackFlow {
         trySend(Resource.Loading)
-
-        val user = auth.currentUser
-        if (user == null) {
-            trySend(Resource.Error("User session not found."))
+        val key = sessionManager.getCurrentUserKey()
+        Log.d("TAG", "currentUser: $key")
+        if (key.isNullOrBlank()) {
+            trySend(Resource.Error("No active session"))
             close()
             return@callbackFlow
         }
 
-        if (!user.isEmailVerified) {
-            trySend(Resource.Error("Please verify your email before logging in."))
-            auth.signOut()
-            close()
-            return@callbackFlow
-        }
-
-        val userRef = db.child("admin").child(user.uid)
-
+        val userRef = db.child("admin").child(key)
         val job = launch {
             try {
                 userRef.valueEvents.collect { snapshot ->
-                    val admin = snapshot.value<UserModel?>()
-                    if (admin != null) {
-                        trySend(Resource.Success(admin))
-                    } else {
-                        trySend(Resource.Error("User data is empty."))
-                    }
+                    val user = snapshot.value<UserModel?>()
+                    if (user != null) trySend(Resource.Success(user))
+                    else trySend(Resource.Error("User data not found"))
                 }
             } catch (e: Exception) {
                 trySend(Resource.Error(e.message.toString()))
             }
         }
-
         awaitClose { job.cancel() }
     }
 
-    suspend fun reauthenticate(password: String): Resource<Unit> {
-        val currentUser = auth.currentUser ?: return Resource.Error("User session not found.")
+    suspend fun sessionOut() {
+        sessionManager.clearSession()
+    }
 
-        if (password.isEmpty()) return Resource.Error("Password cannot be empty.")
+    suspend fun reauthenticate(password: String): Resource<Unit> {
+        val key = sessionManager.getCurrentUserKey() ?: return Resource.Error("No active session")
 
         return try {
-            currentUser.getIdToken(true)
-            currentUser.reload()
-
-            val email = currentUser.email ?: return Resource.Error("User email not found.")
-
-            val credential = EmailAuthProvider.credential(email, password)
-
-            currentUser.reauthenticate(credential)
-
-            Resource.Success(Unit)
+            val snapshot = db.child("admin").child(key).valueEvents.first()
+            val user = snapshot.value<UserModel?>()
+            if (user?.password == password) Resource.Success(Unit)
+            else Resource.Error("Ghalat Password! Dobara check karein.")
         } catch (e: Exception) {
-            val msg = when (e) {
-                is FirebaseAuthInvalidCredentialsException -> "Ghalat Password! Dobara check karein."
-                else -> e.message ?: "Re-authentication failed."
-            }
-            Resource.Error(msg)
+            Resource.Error(e.message ?: "Re-authentication failed.")
         }
     }
 
     fun getUserList(): Flow<Resource<List<UserModel>>> = callbackFlow {
         trySend(Resource.Loading)
-
-        val databaseReference = db.child("admin")
-
+        val ref = db.child("admin")
         val job = launch {
             try {
-                databaseReference.valueEvents.collect { snapshot ->
-                    val userList = mutableListOf<UserModel>()
-                    for (userSnapshot in snapshot.children) {
+                ref.valueEvents.collect { snapshot ->
+                    val list = snapshot.children.mapNotNull {
                         try {
-                            val user = userSnapshot.value<UserModel?>()
-                            user?.let { userList.add(it) }
+                            it.value<UserModel?>()
                         } catch (e: Exception) {
-                            // corrupted node ko skip karo, crash mat hone do
+                            null
                         }
                     }
-                    trySend(Resource.Success(userList))
+                    trySend(Resource.Success(list))
                 }
             } catch (e: Exception) {
                 trySend(Resource.Error(e.message.toString()))
             }
         }
-
         awaitClose { job.cancel() }
     }
 
-    fun updateUser(user: UserModel): Flow<Resource<Unit>> = callbackFlow {
-        trySend(Resource.Loading)
-        val currentUser = auth.currentUser
-
-        if (currentUser == null) {
-            trySend(Resource.Error("User session not found."))
-            close()
-            return@callbackFlow
-        }
-        if (currentUser.uid != user.key) {
-            trySend(Resource.Error("You can only update your own profile."))
-            close()
-            return@callbackFlow
-        }
-
-        try {
-            val targetEmail = user.email
-            if (!targetEmail.isNullOrBlank() && targetEmail != currentUser.email) {
-                currentUser.verifyBeforeUpdateEmail(targetEmail)
-            }
-
-            val targetPassword = user.password
-            if (!targetPassword.isNullOrBlank()) {
-                currentUser.updatePassword(targetPassword)
-                currentUser.getIdToken(true)
-            }
-
-            val userMap = mapOf(
-                "name" to user.name,
-                "email" to user.email,
-                "key" to user.key,
-                "admin" to user.admin,
-                "userAccess" to user.userAccess
-            ).filterValues { it != null }
-
-            db.child("admin").child(user.key!!).updateChildren(userMap)
-
-            trySend(Resource.Success(Unit))
-            close()
-
-        } catch (e: FirebaseAuthRecentLoginRequiredException) {
-            trySend(Resource.Error("REAUTH_REQUIRED"))
-            close()
-        } catch (e: Exception) {
-            trySend(Resource.Error(e.message ?: "Failed to update profile data"))
-            close()
-        }
-
-        awaitClose()
-    }
-
-    suspend fun updateUserAccess(changedUsers: List<UserModel>): Flow<Resource<Unit>> = flow {
+    fun updateUser(user: UserModel): Flow<Resource<Unit>> = flow {
         emit(Resource.Loading)
         try {
-            if (changedUsers.isEmpty()) {
-                emit(Resource.Success(Unit))
-                return@flow
-            }
+            val key = user.key ?: return@flow emit(Resource.Error("Missing user key"))
+            val userMap = mapOf(
+                "name" to user.name, "password" to user.password, "admin" to user.admin, "userAccess" to user.userAccess
+            ).filterValues { it != null }
 
-            val updates = mutableMapOf<String, Any?>()
-            changedUsers.forEach { user ->
-                val uid = user.key
-                if (!uid.isNullOrEmpty()) {
-                    updates["$uid/userAccess"] = user.userAccess
-                }
-            }
-
-            if (updates.isNotEmpty()) {
-                db.child("admin").updateChildren(updates)
-            }
-
+            db.child("admin").child(key).updateChildren(userMap)
             emit(Resource.Success(Unit))
         } catch (e: Exception) {
-            emit(Resource.Error(e.message ?: "Failed to update access"))
+            emit(Resource.Error(e.message ?: "Failed to update profile data"))
+        }
+    }
+
+    suspend fun updateUserAccess(changedUsers: List<UserModel>): Resource<Unit> {
+        return try {
+            if (changedUsers.isEmpty()) return Resource.Success(Unit)
+            val updates = mutableMapOf<String, Any?>()
+            changedUsers.forEach { user ->
+                user.key?.let { uid -> updates["$uid/userAccess"] = user.userAccess }
+            }
+            if (updates.isNotEmpty()) db.child("admin").updateChildren(updates)
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Failed to update access")
         }
     }
 }

@@ -13,8 +13,22 @@ sealed interface NavRoutes {
     data object MainScreen : NavRoutes
 
     @Serializable
-    data object AllItemsScreen : NavRoutes
+    data object AddItemScreen : NavRoutes
 
     @Serializable
-    data class EditItemScreen(val itemKey: String) : NavRoutes   // simple/primitive args best hote hain
+    data object AllItemScreen : NavRoutes
+
+    @Serializable
+    data object OutOfDeliveryScreen : NavRoutes
+
+    @Serializable
+    data object PendingOrderScreen : NavRoutes
+
+    @Serializable
+    data object AdminProfileScreen : NavRoutes
+
+    @Serializable
+    data object CreateUserScreen : NavRoutes
+
+
 }

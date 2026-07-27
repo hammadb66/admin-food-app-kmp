@@ -17,10 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 
@@ -35,9 +35,7 @@ data class PendingOrder(
 )
 
 @Composable
-fun PendingOrderScreen(
-
-) {
+fun PendingOrderScreen(navController: NavHostController) {
     // Ye data ViewModel se aana chahiye
     var orders by remember {
         mutableStateOf(
@@ -60,7 +58,7 @@ fun PendingOrderScreen(
                 contentDescription = "Back",
                 modifier = Modifier
                     .size(24.dp)
-                    .clickable {  }
+                    .clickable {navController.navigateUp()  }
             )
 
             Text(

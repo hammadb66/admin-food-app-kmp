@@ -12,11 +12,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.domain.usecase.SessionOutUseCase
 
 
-class MainActivityViewModel(
+class MainScreenViewModel(
     private val getCompleteOrderUseCase: GetCompleteOrderUseCase,
     private val getPendingOrderUseCase: GetPendingOrderUseCase,
+    private val sessionOutUseCase: SessionOutUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainActivityUiState())
@@ -24,6 +26,10 @@ class MainActivityViewModel(
 
     init {
         fetchAllData()
+    }
+
+   suspend fun sessionOut() {
+        sessionOutUseCase.invoke()
     }
 
     private fun fetchAllData() {
@@ -43,9 +49,7 @@ class MainActivityViewModel(
                     val earnings = totalEarningCollection(resource.data)
                     _uiState.update {
                         it.copy(
-                            totalEarnings = earnings,
-                            completeOrdersCount = resource.data.size,
-                            isLoading = false
+                            totalEarnings = earnings, completeOrdersCount = resource.data.size, isLoading = false
                         )
                     }
                 }

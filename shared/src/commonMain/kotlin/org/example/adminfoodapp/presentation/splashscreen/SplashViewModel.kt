@@ -11,6 +11,8 @@ import org.example.adminfoodapp.utils.ToastManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.utils.Utils.ISADMIN
+import org.example.adminfoodapp.utils.Utils.ISUSERACCESS
 
 class SplashViewModel(
     private val currentUserUseCase: CurrentUserUseCase,
@@ -45,7 +47,7 @@ class SplashViewModel(
     }
 
     private fun saveUserData(user: UserModel) {
-        settings.putBoolean("IS_ADMIN", user.admin ?: false)
-        settings.putBoolean("USER_ACCESS", user.userAccess ?: false)
+        settings.putBoolean(ISADMIN, user.admin ?: false)
+        settings.putBoolean(ISUSERACCESS, user.userAccess ?: false)
     }
 }

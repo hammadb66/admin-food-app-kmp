@@ -13,6 +13,6 @@ actual val platformModule: Module = module {
         val context = get<Context>()
         val prefs = context.getSharedPreferences("admin_food_app_prefs", Context.MODE_PRIVATE)
         SharedPreferencesSettings(prefs)
-    }
-    single { NetworkMonitor(get()) }   // ✅ ye line add karo
+    }//for share preference
+    single { NetworkMonitor(get()) }   //for network monitor
 }

@@ -8,35 +8,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:294226982300:android:a140b2d86e4514f9618459",
-        "android_client_info": {
-          "package_name": "com.example.adminfoodapp"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "294226982300-i40up4o6jqpbiq3if2pgdlp3kclue2fc.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyA_avdcYQEDK5SEfct53-uYpFanb24OhCQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "294226982300-i40up4o6jqpbiq3if2pgdlp3kclue2fc.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:294226982300:android:ca790bc3c4f72ad2618459",
         "android_client_info": {
           "package_name": "com.example.adminfoodorder"
@@ -85,6 +56,43 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.foodorder",
+            "certificate_hash": "70a511b5df275ec23f69f576bac3245bc0439060"
+          }
+        },
+        {
+          "client_id": "294226982300-i40up4o6jqpbiq3if2pgdlp3kclue2fc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_avdcYQEDK5SEfct53-uYpFanb24OhCQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "294226982300-i40up4o6jqpbiq3if2pgdlp3kclue2fc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:294226982300:android:43a8cff51cb059bf618459",
+        "android_client_info": {
+          "package_name": "org.example.adminfoodapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "294226982300-frvej8pvk40du26qqahv9c748hmbqgfe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.example.adminfoodapp",
             "certificate_hash": "70a511b5df275ec23f69f576bac3245bc0439060"
           }
         },

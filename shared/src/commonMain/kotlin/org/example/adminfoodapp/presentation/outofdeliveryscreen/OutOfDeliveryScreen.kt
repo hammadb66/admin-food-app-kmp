@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 
@@ -32,7 +33,7 @@ data class OrderDelivery(
 )
 
 @Composable
-fun OutOfDeliveryScreen() {
+fun OutOfDeliveryScreen(navController: NavHostController) {
     // Dummy Data
     val orders = listOf(
         OrderDelivery("John Doe", "$30", false, "k1"),
@@ -52,7 +53,7 @@ fun OutOfDeliveryScreen() {
                 contentDescription = "Back",
                 modifier = Modifier
                     .size(24.dp)
-                    .clickable {  }
+                    .clickable { navController.navigateUp() }
             )
 
             Text(

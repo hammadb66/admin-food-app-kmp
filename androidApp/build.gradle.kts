@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "org.example.adminfoodapp"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "org.example.adminfoodapp"
@@ -40,6 +40,14 @@ android {
 
     buildFeatures {
         compose = true
+    }
+}
+
+
+// Kotlin Options ko bhi Java 11 par set karein
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 

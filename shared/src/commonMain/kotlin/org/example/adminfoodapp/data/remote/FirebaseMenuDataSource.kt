@@ -4,18 +4,18 @@ import org.example.adminfoodapp.data.model.AllMenu
 import org.example.adminfoodapp.data.model.OrderDetails
 import org.example.adminfoodapp.utils.CancelledBy
 import org.example.adminfoodapp.utils.Resource
-import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.database.DatabaseReference
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.cloudinaryuploader.CloudinaryUploader
+import org.example.adminfoodapp.utils.SessionManager
 import java.io.File
 
 class FirebaseMenuDataSource(
-    private val db: DatabaseReference,
-    private val auth: FirebaseAuth,
+    private val db: DatabaseReference, private val sessionManager: SessionManager,
     private val cloudinaryUploader: CloudinaryUploader
 ) {
     private val menuRef = db.child("menu")
@@ -42,7 +42,7 @@ class FirebaseMenuDataSource(
 
     fun getOrderHistory(): Flow<Resource<MutableList<OrderDetails>>> = callbackFlow {
         trySend(Resource.Loading)
-        val userId = auth.currentUser?.uid
+        val userId = sessionManager.getCurrentUserKey()   // ✅ badla
         if (userId.isNullOrEmpty()) {
             trySend(Resource.Error("User not logged in"))
             close()
@@ -73,7 +73,7 @@ class FirebaseMenuDataSource(
 
     fun getCompleteOrder(): Flow<Resource<MutableList<OrderDetails>>> = callbackFlow {
         trySend(Resource.Loading)
-        val userId = auth.currentUser?.uid
+        val userId = sessionManager.getCurrentUserKey()
         if (userId.isNullOrEmpty()) {
             trySend(Resource.Error("User not logged in"))
             close()
@@ -188,49 +188,53 @@ class FirebaseMenuDataSource(
         }
     }
 
-    suspend fun addMenu(item: AllMenu, file: File): Result<Unit> {
+// import java.io.File   ❌ ab zaroorat nahi
+
+    suspend fun addMenu(item: AllMenu, imageBytes: ByteArray): Result<Unit> {
         val key = menuRef.push().key ?: return Result.failure(Exception("Firebase key null"))
 
-        println("Firebase key: $key , file name ${file.name} , file path ${file.absolutePath}")
+        val uploadResult = cloudinaryUploader.upload(imageBytes, key)
 
-        val uploadResult = cloudinaryUploader.upload(file, key)
-
-        return uploadResult.fold(onSuccess = { imageUrl ->
-            try {
-                menuRef.child(key).setValue(item.copy(key = key, foodImage = imageUrl))
-                if (file.exists()) file.delete()
-                Result.success(Unit)
-            } catch (e: Exception) {
-                if (file.exists()) file.delete()
-                Result.failure(e)
-            }
-        }, onFailure = {
-            if (file.exists()) file.delete()
-            Result.failure(it)
-        })
+        return uploadResult.fold(
+            onSuccess = { imageUrl ->
+                try {
+                    menuRef.child(key).setValue(item.copy(key = key, foodImage = imageUrl))
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+            },
+            onFailure = { Result.failure(it) }
+        )
     }
 
-    suspend fun updateMenu(item: AllMenu, newFile: File?): Result<Unit> {
+    suspend fun updateMenu(item: AllMenu, newImageBytes: ByteArray?): Result<Unit> {
         val key = item.key ?: return Result.failure(Exception("Cannot update item: Missing Firebase key"))
 
-        // Scenario 1: image bhi update ho rahi hai
-        if (newFile != null && newFile.exists()) {
+        if (newImageBytes != null) {
             val uniqueImageId = "${key}_${System.currentTimeMillis()}"
-            val uploadResult = cloudinaryUploader.upload(newFile, uniqueImageId)
+            val uploadResult = cloudinaryUploader.upload(newImageBytes, uniqueImageId)
 
-            return uploadResult.fold(onSuccess = { imageUrl ->
-                val updatedItem = item.copy(foodImage = imageUrl)
-                updateFirebaseData(key, updatedItem, newFile)
-            }, onFailure = {
-                if (newFile.exists()) newFile.delete()
-                Result.failure(it)
-            })
+            return uploadResult.fold(
+                onSuccess = { imageUrl ->
+                    val updatedItem = item.copy(foodImage = imageUrl)
+                    updateFirebaseData(key, updatedItem)
+                },
+                onFailure = { Result.failure(it) }
+            )
         } else {
-            // Scenario 2: sirf text data change hua hai, image nahi
-            return updateFirebaseData(key, item, null)
+            return updateFirebaseData(key, item)
         }
     }
 
+    private suspend fun updateFirebaseData(key: String, item: AllMenu): Result<Unit> {
+        return try {
+            menuRef.child(key).setValue(item)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
     private suspend fun updateFirebaseData(key: String, item: AllMenu, fileToCleanup: File?): Result<Unit> {
         return try {
             menuRef.child(key).setValue(item)

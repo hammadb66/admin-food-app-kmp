@@ -20,28 +20,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 
 // Data Model with Status for Firebase Toggle
 data class SubUser(
-    val id: String, 
-    val name: String, 
-    val role: String, 
-    var isActive: Boolean // Toggle state
+    val id: String, val name: String, val role: String, var isActive: Boolean // Toggle state
 )
 
 @Composable
-fun AdminProfileScreen(onBack: () -> Unit = {}) {
+fun AdminProfileScreen(navController: NavHostController) {
     // Ye list ViewModel se aani chahiye taake state persist rahe
-    var subUsers by remember { 
+    var subUsers by remember {
         mutableStateOf(
             listOf(
                 SubUser("1", "John Doe", "Manager", true),
                 SubUser("2", "Jane Smith", "Editor", false),
                 SubUser("3", "Alex Brown", "Viewer", true)
             )
-        ) 
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
@@ -53,10 +51,7 @@ fun AdminProfileScreen(onBack: () -> Unit = {}) {
             Icon(
                 painter = painterResource(Res.drawable.arrow_left),
                 contentDescription = "Back",
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { onBack() }
-            )
+                modifier = Modifier.size(24.dp).clickable { navController.navigateUp() })
 
             // Screen Title
             Text(
@@ -64,16 +59,19 @@ fun AdminProfileScreen(onBack: () -> Unit = {}) {
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.displaySmall.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                    fontSize = 40.sp,
-                    color = Color.Black
+                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 40.sp, color = Color.Black
                 )
             )
 
             // Sub-Users List
             if (subUsers.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text("No Sub-Users Found", color = TextColor, fontSize = 18.sp, fontFamily = FontFamily(Font(Res.font.yeonsung_regular)))
+                    Text(
+                        "No Sub-Users Found",
+                        color = TextColor,
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
+                    )
                 }
             } else {
                 LazyColumn(
@@ -83,17 +81,15 @@ fun AdminProfileScreen(onBack: () -> Unit = {}) {
                 ) {
                     items(subUsers) { user ->
                         UserItem(
-                            user = user,
-                            onToggleActive = { newValue ->
+                            user = user, onToggleActive = { newValue ->
                                 // YAHAN FIREBASE UPDATE KI LOGIC AAYEGI
                                 // Example: firebase.database().ref("users").child(user.id).child("isActive").setValue(newValue)
-                                
+
                                 // UI update karne ke liye state change karein
-                                subUsers = subUsers.map { 
-                                    if (it.id == user.id) it.copy(isActive = newValue) else it 
+                                subUsers = subUsers.map {
+                                    if (it.id == user.id) it.copy(isActive = newValue) else it
                                 }
-                            }
-                        )
+                            })
                     }
                 }
             }
@@ -106,7 +102,12 @@ fun AdminProfileScreen(onBack: () -> Unit = {}) {
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                 border = BorderStroke(1.dp, TextColor)
             ) {
-                Text("Save Information", color = TextColor, fontSize = 18.sp, fontFamily = FontFamily(Font(Res.font.yeonsung_regular)))
+                Text(
+                    "Save Information",
+                    color = TextColor,
+                    fontSize = 18.sp,
+                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -131,20 +132,15 @@ fun UserItem(user: SubUser, onToggleActive: (Boolean) -> Unit) {
         elevation = CardDefaults.cardElevation(1.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             // User Icon
             Surface(
-                modifier = Modifier.size(45.dp),
-                shape = CircleShape,
-                color = TextColor.copy(alpha = 0.1f)
+                modifier = Modifier.size(45.dp), shape = CircleShape, color = TextColor.copy(alpha = 0.1f)
             ) {
                 Icon(
                     painter = painterResource(Res.drawable.logo), // Use profile icon
-                    contentDescription = null,
-                    modifier = Modifier.padding(10.dp),
-                    tint = TextColor
+                    contentDescription = null, modifier = Modifier.padding(10.dp), tint = TextColor
                 )
             }
 
@@ -163,9 +159,7 @@ fun UserItem(user: SubUser, onToggleActive: (Boolean) -> Unit) {
                     color = if (user.isActive) Color(0xFF2E7D32) else Color.Red
                 )
                 Switch(
-                    checked = user.isActive,
-                    onCheckedChange = { onToggleActive(it) },
-                    colors = SwitchDefaults.colors(
+                    checked = user.isActive, onCheckedChange = { onToggleActive(it) }, colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = Color(0xFF2E7D32),
                         uncheckedThumbColor = Color.White,

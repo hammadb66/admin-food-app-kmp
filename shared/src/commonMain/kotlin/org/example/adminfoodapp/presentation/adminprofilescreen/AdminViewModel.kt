@@ -34,13 +34,13 @@ class AdminViewModel (
     }
 
 
-    fun updateUserAccess(user: List<UserModel>) {
+ /*   fun updateUserAccess(user: List<UserModel>) {
         viewModelScope.launch {
             updateUserUseCase.invoke(user).collect {
                 _stateUpdateUser.value = it
             }
         }
-    }
+    }*/
 
 }
 

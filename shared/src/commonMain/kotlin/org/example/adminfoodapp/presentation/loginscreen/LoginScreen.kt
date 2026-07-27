@@ -23,13 +23,42 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import org.example.adminfoodapp.navigaiton.NavRoutes
+import org.example.adminfoodapp.utils.Resource
+import org.example.adminfoodapp.utils.ToastManager
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun LoginScreen(navController: NavHostController) {
-    // State ko yahan rakha hai taake resize par data na ure (State Hoisting)
-    var emailField by remember { mutableStateOf("") }
+
+    val viewModel: LoginViewModel = koinViewModel()
+    val toastManager: ToastManager = koinInject()
+    val state by viewModel.stateLogin.collectAsState()
+
+    LaunchedEffect(state) {
+        when (val result = state) {
+            is Resource.Success -> {
+                if (result.data.admin == true || result.data.userAccess == true) {
+                    navController.navigate(NavRoutes.MainScreen) {
+                        popUpTo(NavRoutes.LoginScreen) { inclusive = true }
+                    }
+                } else {
+                    toastManager.show("You Don't Have Access")
+                }
+            }
+
+            is Resource.Error -> {
+                toastManager.show(result.message)
+            }
+
+            is Resource.Loading -> {}
+        }
+    }
+
+    var usernameField by remember { mutableStateOf("") }
     var passwordField by remember { mutableStateOf("") }
 
     val scrollState = rememberScrollState()
@@ -38,7 +67,6 @@ fun LoginScreen(navController: NavHostController) {
         val maxWidth = maxWidth
         val isDesktop = maxWidth > 700.dp
 
-        // Pura content scrollable Box mein rakha hai
         Box(
             modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(16.dp),
             contentAlignment = Alignment.Center
@@ -54,8 +82,11 @@ fun LoginScreen(navController: NavHostController) {
                     }
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         LoginBottomContainer(
-                            email = emailField,
-                            onEmailChange = { emailField = it },
+                            onButtonClick = {
+                                viewModel.login(usernameField, passwordField)
+                            },
+                            email = usernameField,
+                            onEmailChange = { usernameField = it },
                             password = passwordField,
                             onPasswordChange = { passwordField = it })
                     }
@@ -70,8 +101,11 @@ fun LoginScreen(navController: NavHostController) {
                     LoginUpperContainer()
                     Spacer(modifier = Modifier.height(40.dp))
                     LoginBottomContainer(
-                        email = emailField,
-                        onEmailChange = { emailField = it },
+                        onButtonClick = {
+                            viewModel.login(usernameField, passwordField)
+                        },
+                        email = usernameField,
+                        onEmailChange = { usernameField = it },
                         password = passwordField,
                         onPasswordChange = { passwordField = it })
                     Spacer(modifier = Modifier.height(20.dp))
@@ -83,7 +117,11 @@ fun LoginScreen(navController: NavHostController) {
 
 @Composable
 fun LoginBottomContainer(
-    email: String, onEmailChange: (String) -> Unit, password: String, onPasswordChange: (String) -> Unit
+    onButtonClick: () -> Unit,
+    email: String,
+    onEmailChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -93,7 +131,7 @@ fun LoginBottomContainer(
             value = email,
             onValueChange = onEmailChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email Address") },
+            label = { Text("User Name") },
             leadingIcon = {
                 Icon(
                     painter = painterResource(Res.drawable.mail),
@@ -127,7 +165,9 @@ fun LoginBottomContainer(
         Spacer(modifier = Modifier.height(40.dp))
 
         Button(
-            onClick = { /* Login Action */ },
+            onClick = {
+                onButtonClick()
+            },
             modifier = Modifier.fillMaxWidth(0.8f).height(55.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = TextColor)

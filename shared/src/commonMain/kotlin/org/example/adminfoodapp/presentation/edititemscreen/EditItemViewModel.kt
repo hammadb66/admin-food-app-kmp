@@ -18,7 +18,7 @@ class EditItemViewModel  constructor(
     private val _uploadState = MutableStateFlow<UploadState>(UploadState.Idle)
     val uploadState: StateFlow<UploadState> = _uploadState
 
-    fun updateMenuItem(item: AllMenu, file: File?) {
+    fun updateMenuItem(item: AllMenu, file: ByteArray) {
         viewModelScope.launch {
             _uploadState.value = UploadState.Loading
 

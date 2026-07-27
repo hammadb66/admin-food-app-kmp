@@ -46,6 +46,7 @@ kotlin {
 
             //coil
             implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+            implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4") // 👈 Network Support for Desktop & Android
 
             //foricons
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
@@ -61,7 +62,7 @@ kotlin {
 
             implementation(libs.multiplatform.settings)
 
-
+            implementation("io.github.vinceglb:filekit-compose:0.8.0")
 
         }
         
@@ -84,7 +85,7 @@ kotlin {
 
 android {
     namespace = "org.example.adminfoodapp.shared"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 24
