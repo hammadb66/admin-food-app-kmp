@@ -13,11 +13,10 @@ class CreateUserViewModel(
     val signUpUseCase: SignUpUseCase
 ) : ViewModel() {
 
-
-    private val _signUpState = MutableStateFlow<Resource<Unit>>(Resource.Loading)
+   private val _signUpState = MutableStateFlow<Resource<Unit>?>(null)
     val signUpState = _signUpState.asStateFlow()
 
-    fun signUpUser(user:UserModel) {
+    fun signUpUser(user: UserModel) {
         viewModelScope.launch {
             signUpUseCase.invoke(user).collect {
                 _signUpState.value = it

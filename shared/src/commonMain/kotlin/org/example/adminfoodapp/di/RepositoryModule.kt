@@ -17,7 +17,7 @@ import org.koin.dsl.module
 val repositoryModule = module {
     single { CloudinaryUploader() }
     single { OneSignalApi() }
-    single { SessionManager(get()) }   // ✅ naya
+    single { SessionManager(get()) }
 
     single { FirebaseAuthenticationDataSource(get(), get()) }
     single { FirebaseMenuDataSource(get(), get(), get()) }

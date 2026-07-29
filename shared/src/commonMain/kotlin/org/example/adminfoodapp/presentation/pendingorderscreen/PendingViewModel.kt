@@ -39,7 +39,6 @@ class PendingViewModel  (
     fun getOrderHistory() {
         viewModelScope.launch {
             getPendingOrderUseCase.invoke().collect { state ->
-                println("$state")
                 _state.value = state
             }
         }

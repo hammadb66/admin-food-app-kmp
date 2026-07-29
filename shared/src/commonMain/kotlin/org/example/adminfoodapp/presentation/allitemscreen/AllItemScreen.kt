@@ -27,14 +27,14 @@ import org.example.adminfoodapp.utils.Resource
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel // Import the shared ViewModel
 
 @Composable
-fun AllItemScreen(navController: NavHostController) {
+fun AllItemScreen(navController: NavHostController, sharedEditItemViewModel: SharedEditItemViewModel) { // Add sharedEditItemViewModel as parameter
     val viewModel: MenuViewModel = koinViewModel()
     val menuState by viewModel.state.collectAsState()
     val deleteState by viewModel.stateDelete.collectAsState()
 
-    // Delete hone ke baad automatically list refresh ho jayegi
     LaunchedEffect(deleteState) {
         if (deleteState is Resource.Success) {
             viewModel.getMenu()
@@ -89,7 +89,10 @@ fun AllItemScreen(navController: NavHostController) {
                             items(menuItems) { item ->
                                 MenuListItem(
                                     item = item,
-                                    onEdit = { /* Edit Logic */ },
+                                    onEdit = {
+                                        sharedEditItemViewModel.setItemToEdit(item) // Set the item in the shared ViewModel
+                                        navController.navigate(NavRoutes.EditItemScreen) // Navigate without argument
+                                    },
                                     onDelete = { item.key?.let { viewModel.deleteMenu(it) } })
                             }
                         }

@@ -1,34 +1,42 @@
 package org.example.adminfoodapp.navigaiton
 
 import kotlinx.serialization.Serializable
+import org.example.adminfoodapp.data.model.AllMenu
 
 sealed interface NavRoutes {
     @Serializable
-    data object SplashScreen : NavRoutes
+     object SplashScreen : NavRoutes
 
     @Serializable
-    data object LoginScreen : NavRoutes
+     object LoginScreen : NavRoutes
 
     @Serializable
-    data object MainScreen : NavRoutes
+     object MainScreen : NavRoutes
 
     @Serializable
-    data object AddItemScreen : NavRoutes
+     object AddItemScreen : NavRoutes
 
     @Serializable
-    data object AllItemScreen : NavRoutes
+     object AllItemScreen : NavRoutes
 
     @Serializable
-    data object OutOfDeliveryScreen : NavRoutes
+     object OutOfDeliveryScreen : NavRoutes
 
     @Serializable
-    data object PendingOrderScreen : NavRoutes
+     object PendingOrderScreen : NavRoutes
 
     @Serializable
-    data object AdminProfileScreen : NavRoutes
+     object AdminProfileScreen : NavRoutes
 
     @Serializable
-    data object CreateUserScreen : NavRoutes
+     object CreateUserScreen : NavRoutes
 
+    @Serializable
+    object EditItemScreen : NavRoutes
+
+    @Serializable
+    object OrderDetailsScreen : NavRoutes
+    @Serializable
+    object EditUserScreen : NavRoutes
 
 }

@@ -1,7 +1,9 @@
 package org.example.adminfoodapp.data.remote
 
 import android.util.Log
+import androidx.compose.runtime.rememberCoroutineScope
 import dev.gitlive.firebase.database.DatabaseReference
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -29,7 +31,7 @@ class FirebaseAuthenticationDataSource(
             val existingSnapshot = db.child("admin").orderByChild("name").equalTo(normalizedName).valueEvents.first()
 
             if (existingSnapshot.exists) {
-                emit(Resource.Error("Is username se user pehle se maujood hai."))
+                emit(Resource.Error("This User Name Not Available"))
                 return@flow
             }
 
@@ -154,17 +156,30 @@ class FirebaseAuthenticationDataSource(
         }
     }
 
-    suspend fun updateUserAccess(changedUsers: List<UserModel>): Resource<Unit> {
-        return try {
-            if (changedUsers.isEmpty()) return Resource.Success(Unit)
-            val updates = mutableMapOf<String, Any?>()
-            changedUsers.forEach { user ->
-                user.key?.let { uid -> updates["$uid/userAccess"] = user.userAccess }
-            }
-            if (updates.isNotEmpty()) db.child("admin").updateChildren(updates)
+    fun updateUserAccess(user: UserModel): Flow<Resource<Unit>> = flow {
+        emit(Resource.Loading)
+        if (user.key == null) {
+            Resource.Error("Failed to update data")
+            return@flow
+        }
+        try {
+            val userMap = mapOf(
+                "name" to user.name, "password" to user.password, "admin" to user.admin, "userAccess" to user.userAccess
+            ).filterValues { it != null }
+
+            db.child("admin").child(user.key).updateChildren(userMap)
             Resource.Success(Unit)
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Failed to update access")
+        }
+    }
+
+
+    suspend fun deleteUser(id: String) {
+        try {
+            db.child("admin").child(id).removeValue()
+
+        } catch (e: Exception) {
         }
     }
 }

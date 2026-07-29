@@ -26,8 +26,10 @@ class AuthRepositoryImpl(
     override suspend fun reauthenticate(password: String): Resource<Unit> =
         dataSource.reauthenticate(password)
 
-    override suspend fun updateUserAccess(user: List<UserModel>) =
+    override suspend fun updateUserAccess(user: UserModel) =
         dataSource.updateUserAccess(user)
 
     override suspend fun sessionOut() = dataSource.sessionOut()
+    override suspend fun deleteUser(id:String) = dataSource.deleteUser(id)
+
 }

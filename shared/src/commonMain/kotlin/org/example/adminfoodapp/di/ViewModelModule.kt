@@ -12,23 +12,35 @@ import org.example.adminfoodapp.presentation.pendingorderscreen.PendingViewModel
 import org.example.adminfoodapp.data.repository.AuthRepositoryImpl
 import org.example.adminfoodapp.domain.repository.AuthRepository
 import org.example.adminfoodapp.domain.usecase.AddMenuUseCase
+import org.example.adminfoodapp.domain.usecase.CancelConfirmOrderUseCase
+import org.example.adminfoodapp.domain.usecase.CancelOrderUseCase
 import org.example.adminfoodapp.domain.usecase.CurrentUserUseCase
+import org.example.adminfoodapp.domain.usecase.DeleteUserUseCase
 import org.example.adminfoodapp.domain.usecase.GetCompleteOrderUseCase
 import org.example.adminfoodapp.domain.usecase.GetMenuItemsUseCase
 import org.example.adminfoodapp.domain.usecase.GetPendingOrderUseCase
+import org.example.adminfoodapp.domain.usecase.GetUsersListUseCase
 import org.example.adminfoodapp.domain.usecase.LoginUseCase
 import org.example.adminfoodapp.domain.usecase.MenuItemDeleteUseCase
+import org.example.adminfoodapp.domain.usecase.OrderAcceptedUseCase
+import org.example.adminfoodapp.domain.usecase.OrderDispatchUseCase
+import org.example.adminfoodapp.domain.usecase.SendOrderNotificationUseCase
 import org.example.adminfoodapp.domain.usecase.SessionOutUseCase
+import org.example.adminfoodapp.domain.usecase.SignUpUseCase
+import org.example.adminfoodapp.domain.usecase.UpdateMenuItemUseCase
+import org.example.adminfoodapp.domain.usecase.UpdateUserAccessUseCase
+import org.example.adminfoodapp.presentation.edituserscreen.EditUserViewModel
 import org.example.adminfoodapp.presentation.splashscreen.SplashViewModel
 import org.example.adminfoodapp.presentation.userprofilescreen.UserProfileViewModel
+import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
+import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel // Import the new ViewModel
+import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val viewModelModule = module {
-    single { AuthRepositoryImpl(get()) } bind AuthRepository::class
-
     factoryOf(::CurrentUserUseCase)
     factoryOf(::LoginUseCase)
     factoryOf(::SessionOutUseCase)
@@ -37,6 +49,17 @@ val viewModelModule = module {
     factoryOf(::AddMenuUseCase)
     factoryOf(::GetMenuItemsUseCase)
     factoryOf(::MenuItemDeleteUseCase)
+    factoryOf(::UpdateMenuItemUseCase)
+    factoryOf(::UpdateMenuItemUseCase)
+    factoryOf(::OrderAcceptedUseCase)
+    factoryOf(::OrderDispatchUseCase)
+    factoryOf(::CancelOrderUseCase)
+    factoryOf(::CancelConfirmOrderUseCase)
+    factoryOf(::SendOrderNotificationUseCase)
+    factoryOf(::GetUsersListUseCase)
+    factoryOf(::DeleteUserUseCase)
+    factoryOf(::UpdateUserAccessUseCase)
+    factoryOf(::SignUpUseCase)
 
 
 
@@ -51,5 +74,8 @@ val viewModelModule = module {
     viewModelOf(::PendingViewModel)
     viewModelOf(::SplashViewModel)
     viewModelOf(::UserProfileViewModel)
-
+    viewModelOf(::SharedEditItemViewModel)
+    viewModelOf(::SharedOrderItemViewModel)
+    viewModelOf(::ShareUserItemViewModel)
+    viewModelOf(::EditUserViewModel)
 }

@@ -43,13 +43,10 @@ fun AddItemScreen(
     val scope = rememberCoroutineScope()
     var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
     val uploadState by viewModel.uploadState.collectAsState()
     val scrollState = rememberScrollState()
-
     val goldAccent = Color(0xFFD4AF37)
     val darkGray = Color(0xFF333333)
-
     val singleImagePicker = rememberFilePickerLauncher(
         type = PickerType.Image,
         mode = PickerMode.Single
@@ -59,7 +56,6 @@ fun AddItemScreen(
                 selectedImageBytes = it.readBytes()
             }        }
     }
-
     LaunchedEffect(uploadState) {
         when (uploadState) {
             is UploadState.Success -> {

@@ -20,70 +20,56 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import coil3.compose.AsyncImage
+import org.example.adminfoodapp.data.model.OrderDetails
+import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 
-// Data Model for Ordered Item
-data class OrderItem(
-    val name: String,
-    val quantity: String,
-    val price: String
-)
 
 @Composable
-fun OrderDetailsScreen() {
-    // Dummy Data
-    val orderedItems = listOf(
-        OrderItem("Spacy fresh crab", "2", "$30"),
-        OrderItem("Burger Special", "1", "$10"),
-        OrderItem("Italian Pasta", "3", "$60")
-    )
+fun OrderDetailsScreen(navController: NavHostController, sharedOrderItemViewModel: SharedOrderItemViewModel) {
+    val orderItem by sharedOrderItemViewModel.orderItem.collectAsState()
+
+
 
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            
+
             // Header Section
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
-                    .statusBarsPadding(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp).statusBarsPadding(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     painter = painterResource(Res.drawable.arrow_left),
 
                     contentDescription = "Back",
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clickable {  }
-                )
-                
+                    modifier = Modifier.size(28.dp).clickable { navController.navigateUp() })
+
                 Text(
                     text = "Order Details",
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.displaySmall.copy(
-                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                        fontSize = 34.sp,
-                        color = Color.Black
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 34.sp, color = Color.Black
                     )
                 )
             }
 
             // Scrollable Content
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 20.dp)
+                modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 20.dp)
             ) {
                 // Customer Info Fields
                 item {
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        OrderDetailInfoField(label = "Name", value = "Hammad Baloch")
-                        OrderDetailInfoField(label = "Address", value = "Street 12, Main City")
-                        OrderDetailInfoField(label = "Phone", value = "0300-1234567")
-                        OrderDetailInfoField(label = "Total Price", value = "$100")
-                        
+                        OrderDetailInfoField(label = "Name", value = orderItem?.userName ?: "")
+                        OrderDetailInfoField(label = "Address", value = orderItem?.address ?: "")
+                        OrderDetailInfoField(label = "Phone", value = orderItem?.phoneNumber ?: "")
+                        OrderDetailInfoField(label = "Total Price", value = orderItem?.totalPrice ?: "")
+
                         // Optional: Cancel By (Hidden by default in XML)
                         // OrderDetailInfoField(label = "Cancel By", value = "Admin")
 
@@ -91,9 +77,18 @@ fun OrderDetailsScreen() {
                     }
                 }
 
-                // Ordered Items List
-                items(orderedItems) { item ->
-                    OrderedItemCard(item)
+                val foodNames = orderItem?.foodName ?: emptyList()
+                val foodPrices = orderItem?.foodPrice ?: emptyList()
+                val foodQuantities = orderItem?.foodQuantity ?: emptyList()
+                val foodImages = orderItem?.foodImages ?: emptyList()
+
+                items(foodNames.size) { index ->
+                    OrderedItemCard(
+                        name = foodNames.getOrNull(index)?.toString() ?: "Unknown",
+                        price = foodPrices.getOrNull(index)?.toString() ?: "0",
+                        quantity = foodQuantities.getOrNull(index)?.toString() ?: "1",
+                        image = foodImages.getOrNull(index)
+                    )
                 }
             }
         }
@@ -103,17 +98,14 @@ fun OrderDetailsScreen() {
 @Composable
 fun OrderDetailInfoField(label: String, value: String) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 5.dp),
-            //.height(56.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+        //.height(56.dp),
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -123,7 +115,7 @@ fun OrderDetailInfoField(label: String, value: String) {
                 fontSize = 16.sp,
                 color = Color.Black
             )
-            
+
             Text(
                 text = value,
                 modifier = Modifier.weight(1f),
@@ -136,31 +128,23 @@ fun OrderDetailInfoField(label: String, value: String) {
 }
 
 @Composable
-fun OrderedItemCard(item: OrderItem) {
+fun OrderedItemCard(name: String, price: String, quantity: String, image: Any?) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             // Food Image
             Surface(
-                modifier = Modifier.size(70.dp),
-                shape = RoundedCornerShape(15.dp),
-                color = Color(0xFFF0F0F0)
+                modifier = Modifier.size(70.dp), shape = RoundedCornerShape(15.dp), color = Color(0xFFF0F0F0)
             ) {
-                Image(
-                    painter = painterResource(Res.drawable.logo), // Use menu1
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                AsyncImage(
+                    model = image ?: Res.drawable.logo, // Use menu1
+                    contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
                 )
             }
 
@@ -168,12 +152,12 @@ fun OrderedItemCard(item: OrderItem) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.name,
+                    text = name,
                     fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
                     fontSize = 18.sp,
                     color = Color.Black
                 )
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "Quantity: ",
@@ -182,7 +166,7 @@ fun OrderedItemCard(item: OrderItem) {
                         color = Color.Black
                     )
                     Text(
-                        text = item.quantity,
+                        text = quantity,
                         fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
                         fontSize = 16.sp,
                         color = TextColor
@@ -191,7 +175,7 @@ fun OrderedItemCard(item: OrderItem) {
             }
 
             Text(
-                text = item.price,
+                text = price,
                 fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
                 fontSize = 20.sp,
                 color = TextColor,

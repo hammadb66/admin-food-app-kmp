@@ -2,176 +2,305 @@ package org.example.adminfoodapp.presentation.createuserscreen
 
 import TextColor
 import adminfoodapp.shared.generated.resources.*
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import org.example.adminfoodapp.data.model.UserModel
+import org.example.adminfoodapp.utils.Resource
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun CreateUserScreen( navController: NavHostController) {
+fun CreateUserScreen(navController: NavHostController) {
     var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
-
+    var userAccess by remember { mutableStateOf(false) }
+    var adminAccess by remember { mutableStateOf(false) }
+    val viewModel: CreateUserViewModel = koinViewModel()
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val scrollState = rememberScrollState()
+    val state by viewModel.signUpState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    LaunchedEffect(state) {
+       when(state){
+           is Resource.Success -> {
+               errorMessage = null
+               navController.navigateUp()
+           }
+           is Resource.Error->{
+               errorMessage = (state as Resource.Error).message
+           }
+           else -> Unit
+       }
+    }
+
+    // Screen Background
+    Box(
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA)), // Light subtle gray background
+        contentAlignment = Alignment.Center
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Header: Back Button
-            Spacer(modifier = Modifier.height(20.dp).statusBarsPadding())
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    painter = painterResource(Res.drawable.arrow_left),
 
-                    contentDescription = "Back",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { navController.navigateUp() }
-                )
-            }
-
-            // Logo & Title
-            Spacer(modifier = Modifier.height(16.dp))
-            Image(
-                painter = painterResource(Res.drawable.logo),
-                contentDescription = "App Logo",
-                modifier = Modifier.size(120.dp)
-            )
-
-            Text(
-                text = "Waves Of Food",
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                    fontSize = 35.sp,
-                    color = Color.Black
-                )
-            )
-
-            Text(
-                text = "Create New User",
-                color = TextColor,
-                fontSize = 18.sp,
-                fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Name Field
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Name Of User") },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.usernew), contentDescription = null, modifier = Modifier.size(20.dp)) },
-                shape = RoundedCornerShape(15.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = TextColor,
-                    focusedLabelColor = TextColor,
-                    cursorColor = TextColor
-                )
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Email Field
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Email") },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.mail), contentDescription = null, modifier = Modifier.size(20.dp)) },
-                shape = RoundedCornerShape(15.dp),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = TextColor,
-                    focusedLabelColor = TextColor,
-                    cursorColor = TextColor
-                )
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Password Field
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Password") },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.lock), contentDescription = null, modifier = Modifier.size(20.dp)) },
-                trailingIcon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.eye),
-                        contentDescription = "Toggle Password",
-                        modifier = Modifier.size(20.dp).clickable { isPasswordVisible = !isPasswordVisible }
-                    )
-                },
-                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                shape = RoundedCornerShape(15.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = TextColor,
-                    focusedLabelColor = TextColor,
-                    cursorColor = TextColor
-                )
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Create Button
-            Button(
-                onClick = { /* Create User Logic */ },
-                modifier = Modifier
-                    .width(180.dp)
-                    .height(55.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+            // Main Card Wrap (Acts as a clean container on Desktop/Mobile)
+            Card(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 480.dp) // Limits width on Desktop
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Text(
-                    text = "Create New User",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    // Header: Back Button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable { navController.navigateUp() },
+                            color = Color(0xFFF1F3F5)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.arrow_left),
+                                    contentDescription = "Back",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color.Black
+                                )
+                            }
+                        }
+                    }
+
+                    // Logo & App Name
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Image(
+                        painter = painterResource(Res.drawable.logo),
+                        contentDescription = "App Logo",
+                        modifier = Modifier.size(100.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Waves Of Food", style = MaterialTheme.typography.displaySmall.copy(
+                            fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                            fontSize = 32.sp,
+                            color = Color.Black
+                        )
+                    )
+
+                    Text(
+                        text = "Create New Sub-User",
+                        color = Color.Gray,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    errorMessage?.let { msg ->
+                        Text(
+                            text = msg,
+                            color = Color.Red,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(28.dp))
+
+                    // Input: User Name
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("User Name") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(Res.drawable.usernew),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = TextColor,
+                            focusedLabelColor = TextColor,
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Input: Password
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Password") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(Res.drawable.lock),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.eye),
+                                    contentDescription = "Toggle Password",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color.Gray
+                                )
+                            }
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = TextColor,
+                            focusedLabelColor = TextColor,
+
+                            )
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Access Switches Grid
+                    Row(
+                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        AccessToggleCard(
+                            title = "User Access",
+                            isChecked = userAccess,
+                            onCheckedChange = { userAccess = it },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        AccessToggleCard(
+                            title = "Admin Access",
+                            isChecked = adminAccess,
+                            onCheckedChange = { adminAccess = it },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Create Button (Gradient Accent)
+                    Button(
+                        onClick = {
+                            viewModel.signUpUser(
+                                user = UserModel(
+                                    key = "",
+                                    name = name,
+                                    password = password,
+                                    userAccess = userAccess,
+                                    admin = adminAccess
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = "Create User",
+                            color = Color.White,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
+                        )
+                    }
+                }
             }
 
-            // Credit Text
-            Spacer(modifier = Modifier.height(60.dp))
+            // Footer Design Credit
             Text(
                 text = "Design By\nHammad Baloch",
-                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
                 textAlign = TextAlign.Center,
-                color = TextColor,
-                fontSize = 18.sp,
+                color = Color.Gray,
+                fontSize = 14.sp,
                 fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
+            )
+        }
+        if (state is Resource.Loading){
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFF2E7D32))
+            }
+        }
+
+    }
+}
+
+@Composable
+fun AccessToggleCard(
+    title: String, isChecked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier
+) {
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isChecked) Color(0xFF2E7D32) else Color(0xFFE0E0E0), label = "BorderColor"
+    )
+
+    val animatedBgColor by animateColorAsState(
+        targetValue = if (isChecked) Color(0xFFE8F5E9) else Color(0xFFFAFAFA), label = "BgColor"
+    )
+
+    Surface(
+        modifier = modifier.border(1.5.dp, animatedBorderColor, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp)).clickable { onCheckedChange(!isChecked) }, color = animatedBgColor
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isChecked) Color(0xFF2E7D32) else Color.DarkGray
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Switch(
+                checked = isChecked, onCheckedChange = onCheckedChange, colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = Color(0xFF2E7D32),
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFFD6D6D6)
+                )
             )
         }
     }
