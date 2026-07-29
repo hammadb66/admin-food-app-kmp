@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import org.example.adminfoodapp.presentation.additemscreen.AddItemScreen
 import org.example.adminfoodapp.presentation.adminprofilescreen.AdminProfileScreen
 import org.example.adminfoodapp.presentation.allitemscreen.AllItemScreen
@@ -14,6 +15,7 @@ import org.example.adminfoodapp.presentation.edititemscreen.EditItemScreen
 import org.example.adminfoodapp.presentation.edituserscreen.EditUserScreen
 import org.example.adminfoodapp.presentation.loginscreen.LoginScreen
 import org.example.adminfoodapp.presentation.mainScreen.MainScreen
+import org.example.adminfoodapp.presentation.orderbillingscreen.OrderBillingScreen
 import org.example.adminfoodapp.presentation.orderdetailsscreen.OrderDetailsScreen
 import org.example.adminfoodapp.presentation.outofdeliveryscreen.OutOfDeliveryScreen
 import org.example.adminfoodapp.presentation.pendingorderscreen.PendingOrderScreen
@@ -79,6 +81,12 @@ fun NavGraph() {
             composable<NavRoutes.UserProfileScreen> {
                 UserProfileScreen(navController=navController)
             }
+
+            composable<NavRoutes.OrderBillingScreen> {backStackEntry->
+                val args=backStackEntry.toRoute<NavRoutes.OrderBillingScreen>()
+                OrderBillingScreen(navController=navController,args=args)
+            }
+
         }
     }
 }

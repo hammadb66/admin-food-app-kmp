@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -17,14 +18,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import org.example.adminfoodapp.database.TablesEntity
+import org.example.adminfoodapp.navigaiton.NavRoutes
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TableManagementScreen(
-    viewModel: TableViewModel = koinViewModel()
-) {
+fun TableManagementScreen(navController: NavHostController) {
+    val viewModel: TableViewModel = koinViewModel()
+
     val tablesList by viewModel.tablesList.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
@@ -69,9 +71,13 @@ fun TableManagementScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(tablesList) { table ->
+                        // TableCardItem Click Handler inside TableManagementScreen:
                         TableCardItem(
                             table = table,
-                            onStatusToggle = { viewModel.toggleTableStatus(table) },
+                            onStatusToggle = {
+                                // Table par click hotay hi Order Billing Screen par le jayein with tableId!
+                                navController.navigate(NavRoutes.OrderBillingScreen(table.id,table.tableNumber))
+                            },
                             onDelete = { viewModel.deleteTable(table.id) }
                         )
                     }
@@ -108,8 +114,11 @@ fun TableManagementScreen(
                 Button(
                     onClick = {
                         if (tableNumInput.isNotBlank()) {
-                            val cap = capacityInput.toLongOrNull() ?: 4L
-                            viewModel.addTable(tableNumInput, cap)
+                            // Direct String pass karein, ViewModel isey khud Long me convert kar leaga
+                            viewModel.addTable(
+                                tableNumber = tableNumInput,
+                                capacityInput = capacityInput
+                            )
                             tableNumInput = ""
                             capacityInput = ""
                             showAddDialog = false

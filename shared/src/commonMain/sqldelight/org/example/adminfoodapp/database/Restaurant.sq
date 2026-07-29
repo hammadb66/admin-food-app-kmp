@@ -1,54 +1,94 @@
--- 1. Main Dine-In Tables Entity
+-- 1. Dine-In Tables Entity
 CREATE TABLE TablesEntity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tableNumber TEXT NOT NULL UNIQUE,
     capacity INTEGER NOT NULL DEFAULT 4,
-    status TEXT NOT NULL DEFAULT 'AVAILABLE' -- 'AVAILABLE', 'OCCUPIED', 'RESERVED'
+    status TEXT NOT NULL DEFAULT 'AVAILABLE'
 );
 
--- 2. Orders Entity (Attached with TablesEntity via tableId)
+-- 2. Menu Items Entity (Food Catalog)
+CREATE TABLE MenuItemsEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    itemName TEXT NOT NULL,
+    price REAL NOT NULL,
+    category TEXT NOT NULL DEFAULT 'General'
+);
+
+-- 3. Main Orders Table (Dine-In + Takeaway + History)
 CREATE TABLE OrdersEntity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tableId INTEGER NOT NULL,
+    tableId INTEGER,
+    orderType TEXT NOT NULL,
     totalAmount REAL NOT NULL DEFAULT 0.0,
     orderStatus TEXT NOT NULL DEFAULT 'PENDING',
-    FOREIGN KEY (tableId) REFERENCES TablesEntity(id) ON DELETE CASCADE
+    createdAt INTEGER NOT NULL
+);
+
+-- 4. Order Detail Items Entity
+CREATE TABLE OrderItemsEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    orderId INTEGER NOT NULL,
+    menuItemId INTEGER NOT NULL,
+    itemName TEXT NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    price REAL NOT NULL,
+    FOREIGN KEY (orderId) REFERENCES OrdersEntity(id) ON DELETE CASCADE
 );
 
 ------------------ QUERIES ------------------
 
--- Real-time Tables List Get Karna
+-- Table Queries
 getAllTables:
-SELECT * FROM TablesEntity ORDER BY id DESC;
+SELECT * FROM TablesEntity ORDER BY id ASC;
 
--- Naya Table Add Karna
 insertTable:
-INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status)
-VALUES (?, ?, ?);
+INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status) VALUES (?, ?, 'AVAILABLE');
 
--- Table ka Status Update Karna (Available / Occupied)
 updateTableStatus:
-UPDATE TablesEntity
-SET status = ?
-WHERE id = ?;
+UPDATE TablesEntity SET status = ? WHERE id = ?;
 
--- Table Delete Karna
 deleteTable:
-DELETE FROM TablesEntity
-WHERE id = ?;
+DELETE FROM TablesEntity WHERE id = ?;
 
--- Table ke liye Order Create Karna
-createOrder:
-INSERT INTO OrdersEntity(tableId, totalAmount, orderStatus)
-VALUES (?, ?, 'PENDING');
+-- Menu Catalog Queries
+getAllMenuItems:
+SELECT * FROM MenuItemsEntity;
 
--- ATTACHED QUERY (JOIN): Active orders with Table Number
-getPendingOrdersWithTables:
-SELECT
-    OrdersEntity.id AS orderId,
-    TablesEntity.tableNumber,
-    OrdersEntity.totalAmount,
-    OrdersEntity.orderStatus
-FROM OrdersEntity
-INNER JOIN TablesEntity ON OrdersEntity.tableId = TablesEntity.id
-WHERE OrdersEntity.orderStatus = 'PENDING';
+insertMenuItem:
+INSERT OR REPLACE INTO MenuItemsEntity(itemName, price, category) VALUES (?, ?, ?);
+
+-- Active Order Queries
+getPendingOrderForTable:
+SELECT * FROM OrdersEntity WHERE tableId = ? AND orderStatus = 'PENDING' LIMIT 1;
+
+createNewOrder:
+INSERT INTO OrdersEntity(tableId, orderType, totalAmount, orderStatus, createdAt)
+VALUES (?, ?, ?, 'PENDING', ?);
+
+-- Order Items Queries
+getOrderItemsForOrder:
+SELECT * FROM OrderItemsEntity WHERE orderId = ?;
+
+addOrderItem:
+INSERT INTO OrderItemsEntity(orderId, menuItemId, itemName, quantity, price)
+VALUES (?, ?, ?, ?, ?);
+
+updateOrderItemQuantity:
+UPDATE OrderItemsEntity SET quantity = ? WHERE id = ?;
+
+deleteOrderItem:
+DELETE FROM OrderItemsEntity WHERE id = ?;
+
+-- Checkout Queries
+completeOrder:
+UPDATE OrdersEntity SET orderStatus = 'COMPLETED', totalAmount = ? WHERE id = ?;
+
+-- History & Filtering Queries
+getOrdersHistoryByDateRange:
+SELECT * FROM OrdersEntity
+WHERE orderStatus = 'COMPLETED' AND createdAt >= ? AND createdAt <= ?
+ORDER BY createdAt DESC;
+
+getDailySalesTotal:
+SELECT SUM(totalAmount) FROM OrdersEntity
+WHERE orderStatus = 'COMPLETED' AND createdAt >= ?;

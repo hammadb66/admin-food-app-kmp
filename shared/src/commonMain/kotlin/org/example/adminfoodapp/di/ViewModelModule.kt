@@ -29,11 +29,12 @@ import org.example.adminfoodapp.domain.usecase.UpdateMenuItemUseCase
 import org.example.adminfoodapp.domain.usecase.UpdateUserAccessUseCase
 import org.example.adminfoodapp.presentation.edituserscreen.EditUserViewModel
 import org.example.adminfoodapp.presentation.splashscreen.SplashViewModel
+import org.example.adminfoodapp.presentation.tablemanagementscreen.TableViewModel
 import org.example.adminfoodapp.presentation.userprofilescreen.UserProfileViewModel
+import org.example.adminfoodapp.presentation.orderbillingscreen.OrderBillingViewModel
 import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
 import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel // Import the new ViewModel
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
-import org.example.adminfoodapp.presentation.tablemanagementscreen.TableManagementViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -76,7 +77,7 @@ val viewModelModule = module {
     viewModelOf(::SharedOrderItemViewModel)
     viewModelOf(::ShareUserItemViewModel)
     viewModelOf(::EditUserViewModel)
-    viewModelOf(::TableManagementViewModel)
-
+    viewModelOf(::TableViewModel)
+    viewModelOf(::OrderBillingViewModel)
 
 }

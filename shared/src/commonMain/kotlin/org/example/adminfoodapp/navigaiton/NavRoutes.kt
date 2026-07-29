@@ -43,5 +43,7 @@ sealed interface NavRoutes {
 
     @Serializable
     object TableManagementScreen : NavRoutes
+    @Serializable
+    data class OrderBillingScreen(val id:Long,val number:String) : NavRoutes
 
 }
