@@ -2,7 +2,7 @@ package org.example.adminfoodapp.presentation.adminprofilescreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import org.example.adminfoodapp.data.model.UserModel
+import org.example.adminfoodapp.database.model.UserModel
 import org.example.adminfoodapp.domain.usecase.GetUsersListUseCase
 import org.example.adminfoodapp.utils.Resource
 import kotlinx.coroutines.flow.MutableStateFlow

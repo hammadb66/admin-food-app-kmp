@@ -3,7 +3,7 @@ package org.example.adminfoodapp.presentation.splashscreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.russhwolf.settings.Settings
-import org.example.adminfoodapp.data.model.UserModel
+import org.example.adminfoodapp.database.model.UserModel
 import org.example.adminfoodapp.domain.usecase.CurrentUserUseCase
 import org.example.adminfoodapp.utils.NetworkMonitor
 import org.example.adminfoodapp.utils.Resource

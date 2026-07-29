@@ -1,7 +1,7 @@
 package org.example.adminfoodapp.domain.repository
 
 import org.example.adminfoodapp.utils.Resource
-import org.example.adminfoodapp.data.model.UserModel
+import org.example.adminfoodapp.database.model.UserModel
 import kotlinx.coroutines.flow.Flow
 
 interface AuthRepository {
@@ -9,8 +9,6 @@ interface AuthRepository {
     fun login(email: String, password: String): Flow<Resource<UserModel>>
     fun currentUser(): Flow<Resource<UserModel>>
     fun getUsers(): Flow<Resource<List<UserModel>>>
-    fun updateUser(user: UserModel): Flow<Resource<Unit>>
-    suspend fun reauthenticate(password: String): Resource<Unit>
     suspend fun updateUserAccess(user: UserModel): Flow<Resource<Unit>>
 
    suspend fun sessionOut()

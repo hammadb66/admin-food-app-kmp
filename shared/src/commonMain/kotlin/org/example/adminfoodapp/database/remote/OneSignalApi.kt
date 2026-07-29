@@ -1,7 +1,6 @@
-package org.example.adminfoodapp.data.remote
+package org.example.adminfoodapp.database.remote
 
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
@@ -11,7 +10,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import org.example.adminfoodapp.data.model.OneSignalRequest
+import org.example.adminfoodapp.database.model.OneSignalRequest
 
 class OneSignalApi {
 

@@ -1,7 +1,6 @@
 package org.example.adminfoodapp.navigaiton
 
 import kotlinx.serialization.Serializable
-import org.example.adminfoodapp.data.model.AllMenu
 
 sealed interface NavRoutes {
     @Serializable
@@ -38,5 +37,11 @@ sealed interface NavRoutes {
     object OrderDetailsScreen : NavRoutes
     @Serializable
     object EditUserScreen : NavRoutes
+
+    @Serializable
+    object UserProfileScreen : NavRoutes
+
+    @Serializable
+    object TableManagementScreen : NavRoutes
 
 }

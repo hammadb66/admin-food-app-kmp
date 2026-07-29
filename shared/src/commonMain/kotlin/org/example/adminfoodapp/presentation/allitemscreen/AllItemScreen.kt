@@ -2,7 +2,6 @@ package org.example.adminfoodapp.presentation.allitemscreen
 
 import TextColor
 import adminfoodapp.shared.generated.resources.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import org.example.adminfoodapp.data.model.AllMenu
+import org.example.adminfoodapp.database.model.AllMenu
 import org.example.adminfoodapp.navigaiton.NavRoutes
 import org.example.adminfoodapp.utils.Resource
 import org.jetbrains.compose.resources.Font

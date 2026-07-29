@@ -1,4 +1,4 @@
-package org.example.adminfoodapp.data.model
+package org.example.adminfoodapp.database.model
 import kotlinx.serialization.Serializable
 
 @Serializable

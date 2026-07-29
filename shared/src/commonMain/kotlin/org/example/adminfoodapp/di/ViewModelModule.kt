@@ -9,8 +9,6 @@ import org.example.adminfoodapp.presentation.mainScreen.MainScreenViewModel
 import org.example.adminfoodapp.presentation.allitemscreen.MenuViewModel
 import org.example.adminfoodapp.presentation.outofdeliveryscreen.OutOfDeliveryViewModel
 import org.example.adminfoodapp.presentation.pendingorderscreen.PendingViewModel
-import org.example.adminfoodapp.data.repository.AuthRepositoryImpl
-import org.example.adminfoodapp.domain.repository.AuthRepository
 import org.example.adminfoodapp.domain.usecase.AddMenuUseCase
 import org.example.adminfoodapp.domain.usecase.CancelConfirmOrderUseCase
 import org.example.adminfoodapp.domain.usecase.CancelOrderUseCase
@@ -35,9 +33,9 @@ import org.example.adminfoodapp.presentation.userprofilescreen.UserProfileViewMo
 import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
 import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel // Import the new ViewModel
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
+import org.example.adminfoodapp.presentation.tablemanagementscreen.TableManagementViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModelOf
-import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val viewModelModule = module {
@@ -78,4 +76,7 @@ val viewModelModule = module {
     viewModelOf(::SharedOrderItemViewModel)
     viewModelOf(::ShareUserItemViewModel)
     viewModelOf(::EditUserViewModel)
+    viewModelOf(::TableManagementViewModel)
+
+
 }

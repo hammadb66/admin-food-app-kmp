@@ -3,7 +3,7 @@ package org.example.adminfoodapp.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.example.adminfoodapp.data.model.UserModel
+import org.example.adminfoodapp.database.model.UserModel
 
 class ShareUserItemViewModel(
 ) : ViewModel() {

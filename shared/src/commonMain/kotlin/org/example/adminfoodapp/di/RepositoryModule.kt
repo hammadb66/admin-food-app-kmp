@@ -1,12 +1,13 @@
 package org.example.adminfoodapp.di
 
 import org.example.adminfoodapp.cloudinaryuploader.CloudinaryUploader
-import org.example.adminfoodapp.data.remote.FirebaseAuthenticationDataSource
-import org.example.adminfoodapp.data.remote.FirebaseMenuDataSource
-import org.example.adminfoodapp.data.remote.OneSignalApi
-import org.example.adminfoodapp.data.repository.AuthRepositoryImpl
-import org.example.adminfoodapp.data.repository.MenuRepositoryImpl
-import org.example.adminfoodapp.data.repository.NotificationRepositoryImpl
+import org.example.adminfoodapp.database.remote.FirebaseAuthenticationDataSource
+import org.example.adminfoodapp.database.remote.FirebaseMenuDataSource
+import org.example.adminfoodapp.database.remote.OneSignalApi
+import org.example.adminfoodapp.database.repository.AuthRepositoryImpl
+import org.example.adminfoodapp.database.repository.MenuRepositoryImpl
+import org.example.adminfoodapp.database.repository.NotificationRepositoryImpl
+import org.example.adminfoodapp.database.repository.RestaurantRepository
 import org.example.adminfoodapp.domain.repository.AuthRepository
 import org.example.adminfoodapp.domain.repository.MenuRepository
 import org.example.adminfoodapp.domain.repository.NotificationRepository
@@ -25,4 +26,7 @@ val repositoryModule = module {
     single { AuthRepositoryImpl(get()) } bind AuthRepository::class
     single { MenuRepositoryImpl(get()) } bind MenuRepository::class
     single { NotificationRepositoryImpl(get()) } bind NotificationRepository::class
+
+    // 👈 2. Add Local SQLDelight Restaurant Repository
+    single { RestaurantRepository(get()) }
 }

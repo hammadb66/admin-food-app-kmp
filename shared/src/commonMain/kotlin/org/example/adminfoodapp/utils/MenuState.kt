@@ -1,6 +1,6 @@
 package org.example.adminfoodapp.utils
 
-import org.example.adminfoodapp.data.model.AllMenu
+import org.example.adminfoodapp.database.model.AllMenu
 
 data class MenuState(
     val menuItems: List<AllMenu> = emptyList(),

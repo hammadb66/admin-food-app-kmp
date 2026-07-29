@@ -18,6 +18,8 @@ import org.example.adminfoodapp.presentation.orderdetailsscreen.OrderDetailsScre
 import org.example.adminfoodapp.presentation.outofdeliveryscreen.OutOfDeliveryScreen
 import org.example.adminfoodapp.presentation.pendingorderscreen.PendingOrderScreen
 import org.example.adminfoodapp.presentation.splashscreen.SplashScreen
+import org.example.adminfoodapp.presentation.tablemanagementscreen.TableManagementScreen
+import org.example.adminfoodapp.presentation.userprofilescreen.UserProfileScreen
 import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
 import org.example.adminfoodapp.utils.ToastManager
 import org.koin.compose.koinInject
@@ -47,7 +49,9 @@ fun NavGraph() {
             composable<NavRoutes.AddItemScreen> {
                 AddItemScreen(navController = navController)
             }
-
+            composable<NavRoutes.TableManagementScreen> {
+                TableManagementScreen(navController = navController)
+            }
             composable<NavRoutes.AllItemScreen> {
                 AllItemScreen(navController = navController, sharedEditItemViewModel = sharedEditItemViewModel)
             }
@@ -60,12 +64,9 @@ fun NavGraph() {
             composable<NavRoutes.OrderDetailsScreen> {
                 OrderDetailsScreen(navController = navController, sharedOrderItemViewModel = sharedOrderItemViewModel)
             }
-
-
             composable<NavRoutes.AdminProfileScreen> {
                 AdminProfileScreen(navController = navController, shareUserItemViewModel = shareUserItemViewModel)
             }
-
             composable<NavRoutes.EditUserScreen> {
                 EditUserScreen(navController = navController, shareUserItemViewModel = shareUserItemViewModel)
             }
@@ -74,6 +75,9 @@ fun NavGraph() {
             }
             composable<NavRoutes.EditItemScreen> {
                 EditItemScreen(navController = navController, sharedEditItemViewModel = sharedEditItemViewModel)
+            }
+            composable<NavRoutes.UserProfileScreen> {
+                UserProfileScreen(navController=navController)
             }
         }
     }

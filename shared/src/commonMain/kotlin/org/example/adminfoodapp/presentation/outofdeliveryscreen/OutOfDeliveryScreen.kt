@@ -21,7 +21,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import org.example.adminfoodapp.data.model.OrderDetails
+import org.example.adminfoodapp.database.model.OrderDetails
+import org.example.adminfoodapp.utils.ReceiptPrinter
 import org.example.adminfoodapp.utils.Resource
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
@@ -32,10 +33,6 @@ fun OutOfDeliveryScreen(navController: NavHostController) {
 
     val viewmodel: OutOfDeliveryViewModel = koinViewModel()
     val orderState by viewmodel.state.collectAsState()
-
-
-
-
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
@@ -126,6 +123,20 @@ fun DeliveryItemCard(order: OrderDetails) {
 
             // Right Side: Status Text & Indicator
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (order.cancelConfirm == false) {
+                    TextButton(modifier = Modifier.background(shape =RoundedCornerShape(20.dp), color = TextColor),
+                        onClick = {
+                            ReceiptPrinter.printReceipt(order)
+                        },
+                    ) {
+                        Text(
+                            text = "Print Bill",
+                            fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                            fontSize = 18.sp,
+                            color = Color.White
+                        )
+                    }
+                }
                 Text(
                     text = if (order.cancelConfirm == true) "Cancelled" else "Delivered",
                     fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
@@ -135,7 +146,6 @@ fun DeliveryItemCard(order: OrderDetails) {
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Status Indicator (The colored circle from XML)
                 Box(
                     modifier = Modifier.size(32.dp).clip(CircleShape)
                         .background(if (order.cancelConfirm == true) Color.Red else TextColor)

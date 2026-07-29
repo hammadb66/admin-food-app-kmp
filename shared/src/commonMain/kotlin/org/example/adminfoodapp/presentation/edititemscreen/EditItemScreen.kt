@@ -1,5 +1,6 @@
 package org.example.adminfoodapp.presentation.edititemscreen
 
+import TextColor
 import adminfoodapp.shared.generated.resources.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -23,10 +24,9 @@ import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
-import org.example.adminfoodapp.data.model.AllMenu
+import org.example.adminfoodapp.database.model.AllMenu
 import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel
 import org.example.adminfoodapp.utils.UploadState
-import org.example.adminfoodapp.utils.rememberBitmapFromBytes
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -272,7 +272,7 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
                 modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = goldAccent)
+                CircularProgressIndicator(color = TextColor)
             }
         }
     }

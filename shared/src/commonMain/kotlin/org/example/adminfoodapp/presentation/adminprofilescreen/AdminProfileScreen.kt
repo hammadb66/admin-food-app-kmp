@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import org.example.adminfoodapp.data.model.UserModel
+import org.example.adminfoodapp.database.model.UserModel
 import org.example.adminfoodapp.navigaiton.NavRoutes
 import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
 import org.example.adminfoodapp.utils.Resource

@@ -1,6 +1,6 @@
 package org.example.adminfoodapp.domain.usecase
 
-import org.example.adminfoodapp.data.model.OrderDetails
+import org.example.adminfoodapp.database.model.OrderDetails
 import org.example.adminfoodapp.domain.repository.MenuRepository
 
 class OrderDispatchUseCase(

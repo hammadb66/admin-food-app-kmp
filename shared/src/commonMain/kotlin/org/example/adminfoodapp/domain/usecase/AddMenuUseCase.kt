@@ -1,6 +1,6 @@
 package org.example.adminfoodapp.domain.usecase
 
-import org.example.adminfoodapp.data.model.AllMenu
+import org.example.adminfoodapp.database.model.AllMenu
 import org.example.adminfoodapp.domain.repository.MenuRepository
 
 class AddMenuUseCase(

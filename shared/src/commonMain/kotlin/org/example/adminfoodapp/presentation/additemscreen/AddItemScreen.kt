@@ -1,11 +1,11 @@
 package org.example.adminfoodapp.presentation.additemscreen
 
+import TextColor
 import adminfoodapp.shared.generated.resources.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +22,7 @@ import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import kotlinx.coroutines.launch
-import org.example.adminfoodapp.data.model.AllMenu
+import org.example.adminfoodapp.database.model.AllMenu
 import org.example.adminfoodapp.presentation.edititemscreen.AddItemTextField
 import org.example.adminfoodapp.utils.UploadState
 import org.example.adminfoodapp.utils.rememberBitmapFromBytes // 👈 Import Added
@@ -272,7 +272,7 @@ fun AddItemScreen(
                 modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = goldAccent)
+                CircularProgressIndicator(color = TextColor)
             }
         }
     }

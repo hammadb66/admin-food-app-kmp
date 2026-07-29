@@ -5,19 +5,20 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.kotlinSerialization)   // ✅ ye line add karo
+    alias(libs.plugins.kotlinSerialization)
+    id("app.cash.sqldelight")
 
 }
 
 kotlin {
     jvm()
-    
+
     androidTarget {
-       compilerOptions {
-           jvmTarget.set(JvmTarget.JVM_11)
-       }
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
     }
-    
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -28,7 +29,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            
+
             // Firebase Multiplatform
             implementation(libs.firebase.auth)
             implementation(libs.firebase.database)   // Firestore ki jagah ye
@@ -64,8 +65,15 @@ kotlin {
 
             implementation("io.github.vinceglb:filekit-compose:0.8.0")
 
+
+
+            implementation("app.cash.sqldelight:runtime:2.0.2")
+            implementation("app.cash.sqldelight:coroutines-extensions:2.0.2")
+
         }
-        
+        jvmMain.dependencies {
+            implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+        }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
@@ -79,10 +87,20 @@ kotlin {
 
             implementation(libs.multiplatform.settings.no.arg)
 
+            // Android SQLite Driver
+            implementation("app.cash.sqldelight:android-driver:2.0.2")
         }
     }
 }
 
+
+sqldelight {
+    databases {
+        create("RestaurantDatabase") {
+            packageName.set("org.example.adminfoodapp.database")
+        }
+    }
+}
 android {
     namespace = "org.example.adminfoodapp.shared"
     compileSdk = 35
@@ -90,7 +108,7 @@ android {
     defaultConfig {
         minSdk = 24
     }
-    
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

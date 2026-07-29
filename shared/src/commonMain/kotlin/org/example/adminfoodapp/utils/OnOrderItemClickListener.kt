@@ -1,6 +1,6 @@
 package org.example.adminfoodapp.utils
 
-import org.example.adminfoodapp.data.model.OrderDetails
+import org.example.adminfoodapp.database.model.OrderDetails
 
 interface OnOrderItemClickListener {
     fun onOderAcceptClick(order: OrderDetails?)

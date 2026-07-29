@@ -1,11 +1,11 @@
-package org.example.adminfoodapp.data.repository
+package org.example.adminfoodapp.database.repository
 
 import org.example.adminfoodapp.utils.Utils.ONESIGNAL_APP_ID
 import org.example.adminfoodapp.utils.Utils.ONESIGNAL_REST_API_KEY
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
-import org.example.adminfoodapp.data.model.OneSignalRequest
-import org.example.adminfoodapp.data.remote.OneSignalApi
+import org.example.adminfoodapp.database.model.OneSignalRequest
+import org.example.adminfoodapp.database.remote.OneSignalApi
 import org.example.adminfoodapp.domain.repository.NotificationRepository
 
 class NotificationRepositoryImpl(

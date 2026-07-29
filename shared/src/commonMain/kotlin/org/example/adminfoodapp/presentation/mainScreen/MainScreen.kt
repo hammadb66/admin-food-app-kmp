@@ -1,12 +1,12 @@
 package org.example.adminfoodapp.presentation.mainScreen
 
+import TextColor
 import adminfoodapp.shared.generated.resources.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
@@ -32,7 +31,6 @@ import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
-
 @Composable
 fun MainScreen(navController: NavHostController) {
     val viewModel: MainScreenViewModel = koinViewModel()
@@ -40,7 +38,6 @@ fun MainScreen(navController: NavHostController) {
     val scrollState = rememberScrollState()
     val uiState by viewModel.uiState.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
-
 
     val bgColor = Brush.verticalGradient(
         colors = listOf(Color(0xFFF8F9FE), Color(0xFFE9EFFF))
@@ -50,10 +47,13 @@ fun MainScreen(navController: NavHostController) {
         modifier = Modifier.fillMaxSize().background(bgColor)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp)
         ) {
             // Top Bar
-            TopAppBarSection()
+            TopAppBarSection(navController = navController)
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -63,9 +63,7 @@ fun MainScreen(navController: NavHostController) {
             // Stats Section
             Spacer(modifier = Modifier.height(20.dp))
             StatsSection(
-                onTotalEarningClick = {
-                    showDialog = true
-                },
+                onTotalEarningClick = { showDialog = true },
                 totalEarningCount = uiState.totalEarnings,
                 pendingOrderCount = uiState.pendingOrdersCount,
                 processedOrderCount = uiState.completeOrdersCount
@@ -74,7 +72,7 @@ fun MainScreen(navController: NavHostController) {
             // Quick Actions Section
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Quick Management", style = MaterialTheme.typography.titleLarge.copy(
+                text = "Restaurant Operations", style = MaterialTheme.typography.titleLarge.copy(
                     fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
                     fontSize = 20.sp,
                     color = Color(0xFF11142D)
@@ -106,7 +104,6 @@ fun MainScreen(navController: NavHostController) {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
-
                 }
             },
             modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
@@ -121,18 +118,17 @@ fun MainScreen(navController: NavHostController) {
     if (showDialog) {
         EarningsDialog(amount = uiState.totalEarnings, onDismiss = { showDialog = false })
     }
-
-
 }
 
 @Composable
-fun TopAppBarSection() {
+fun TopAppBarSection(navController: NavController) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            modifier = Modifier.size(45.dp),
+            modifier = Modifier.size(45.dp).clickable(
+                onClick = { navController.navigate(NavRoutes.UserProfileScreen) }),
             shape = RoundedCornerShape(12.dp),
             color = Color.White,
             shadowElevation = 2.dp
@@ -140,21 +136,20 @@ fun TopAppBarSection() {
             Icon(
                 painterResource(Res.drawable.profile_user),
                 contentDescription = null,
-                modifier = Modifier.padding(10.dp),
-                tint = Color(0xFF11142D)
+                tint = TextColor,
+                modifier = Modifier.padding(10.dp)
             )
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
         Text(
-            text = "X Cafe", style = MaterialTheme.typography.headlineSmall.copy(
+            text = "X Cafe - Restaurant POS", style = MaterialTheme.typography.headlineSmall.copy(
                 fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), color = Color(0xFF11142D)
             )
         )
     }
 }
-
 
 @Composable
 fun StatsSection(
@@ -177,7 +172,6 @@ fun StatsSection(
                 Surface(
                     shape = RoundedCornerShape(8.dp), color = Color.White, modifier = Modifier.size(32.dp)
                 ) {
-                    // Replace with your dollar icon
                     Icon(
                         painterResource(Res.drawable.dollar),
                         contentDescription = "$",
@@ -242,35 +236,45 @@ fun StatSmallCard(title: String, value: String, valueColor: Color, bgColor: Colo
 
 @Composable
 fun QuickActionsGrid(navController: NavController) {
+    // Naye Restaurant Operations Cards (Tables, Dine In, Takeaway) Yahan Add Kiye Hain:
     val items = listOf(
+        // 1. Tables Management
+        QuickActionData(
+            "Table\nManagement", Color(0xFFE0F7FA), Color(0xFF00838F), Res.drawable.eye, NavRoutes.TableManagementScreen
+        ),
+        // 2. Dine-In Orders
+        QuickActionData(
+            "Dine-In\nOrders", Color(0xFFEDE7F6), Color(0xFF512DA8), Res.drawable.order_processed, NavRoutes.OutOfDeliveryScreen
+        ),
+        // 3. Takeaway Orders
+        QuickActionData(
+            "Takeaway\nOrders", Color(0xFFFFF3E0), Color(0xFFE65100), Res.drawable.attantion, NavRoutes.AdminProfileScreen
+        ),
+        // 4. Delivery Orders
+        QuickActionData(
+            "Online\nDelivery", Color(0xFFE3F2FD), Color(0xFF1565C0), Res.drawable.order_processed, NavRoutes.OutOfDeliveryScreen
+        ),
+        // 5. Add Menu Item
         QuickActionData(
             "Add Menu\nItem", Color(0xFFE8F5E9), Color(0xFF2E7D32), Res.drawable.pluse_round, NavRoutes.AddItemScreen
-        ), QuickActionData(
-            "All Items\nCatalog", Color(0xFFE3F2FD), Color(0xFF1565C0), Res.drawable.eye, NavRoutes.AllItemScreen
-        ), QuickActionData(
-            "Processed\nOrders",
-            Color(0xFFFFF8E1),
-            Color(0xFFF9A825),
-            Res.drawable.order_processed,
-            NavRoutes.OutOfDeliveryScreen
-        ), QuickActionData(
-            "New\nOrders", Color(0xFFFFF3E0), Color(0xFFEF6C00), Res.drawable.attantion, NavRoutes.PendingOrderScreen
-        ), QuickActionData(
-            "Admin\nProfile", Color(0xFFF3E5F5), Color(0xFF6A1B9A), Res.drawable.user, NavRoutes.AdminProfileScreen
-        ), QuickActionData(
-            "Create New\nSub-User",
-            Color(0xFFFFF8E1),
-            Color(0xFFF9A825),
-            Res.drawable.user_plus,
-            NavRoutes.CreateUserScreen
+        ),
+        // 6. Catalog
+        QuickActionData(
+            "All Items\nCatalog", Color(0xFFF3E5F5), Color(0xFF6A1B9A), Res.drawable.eye, NavRoutes.AllItemScreen
+        ),
+        // 7. Admin Profile
+        QuickActionData(
+            "Admin\nProfile", Color(0xFFFAFAFA), Color(0xFF424242), Res.drawable.user, NavRoutes.AdminProfileScreen
+        ),
+        // 8. Create Sub-User
+        QuickActionData(
+            "Create New\nSub-User", Color(0xFFFFF8E1), Color(0xFFF9A825), Res.drawable.user_plus, NavRoutes.CreateUserScreen
         )
     )
 
-    // Using BoxWithConstraints to decide grid columns
     BoxWithConstraints {
         val columns = if (maxWidth > 600.dp) 3 else 2
 
-        // Manual Grid because LazyVerticalGrid inside Scrollable Column is tricky
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             for (i in items.indices step columns) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -322,7 +326,6 @@ fun QuickActionCard(navController: NavController, data: QuickActionData, modifie
         }
     }
 }
-
 
 data class QuickActionData(
     val title: String, val iconBg: Color, val iconTint: Color, val iconRes: DrawableResource, val navRoutes: NavRoutes

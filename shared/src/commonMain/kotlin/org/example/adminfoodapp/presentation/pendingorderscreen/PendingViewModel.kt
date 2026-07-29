@@ -2,7 +2,7 @@ package org.example.adminfoodapp.presentation.pendingorderscreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import org.example.adminfoodapp.data.model.OrderDetails
+import org.example.adminfoodapp.database.model.OrderDetails
 import org.example.adminfoodapp.domain.usecase.CancelConfirmOrderUseCase
 import org.example.adminfoodapp.domain.usecase.CancelOrderUseCase
 import org.example.adminfoodapp.domain.usecase.GetPendingOrderUseCase

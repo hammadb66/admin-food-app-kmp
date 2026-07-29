@@ -2,13 +2,12 @@ package org.example.adminfoodapp.presentation.edititemscreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import org.example.adminfoodapp.data.model.AllMenu
+import org.example.adminfoodapp.database.model.AllMenu
 import org.example.adminfoodapp.domain.usecase.UpdateMenuItemUseCase
 import org.example.adminfoodapp.utils.UploadState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.io.File
 
 
 class EditItemViewModel (

@@ -1,0 +1,54 @@
+-- 1. Main Dine-In Tables Entity
+CREATE TABLE TablesEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tableNumber TEXT NOT NULL UNIQUE,
+    capacity INTEGER NOT NULL DEFAULT 4,
+    status TEXT NOT NULL DEFAULT 'AVAILABLE' -- 'AVAILABLE', 'OCCUPIED', 'RESERVED'
+);
+
+-- 2. Orders Entity (Attached with TablesEntity via tableId)
+CREATE TABLE OrdersEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tableId INTEGER NOT NULL,
+    totalAmount REAL NOT NULL DEFAULT 0.0,
+    orderStatus TEXT NOT NULL DEFAULT 'PENDING',
+    FOREIGN KEY (tableId) REFERENCES TablesEntity(id) ON DELETE CASCADE
+);
+
+------------------ QUERIES ------------------
+
+-- Real-time Tables List Get Karna
+getAllTables:
+SELECT * FROM TablesEntity ORDER BY id DESC;
+
+-- Naya Table Add Karna
+insertTable:
+INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status)
+VALUES (?, ?, ?);
+
+-- Table ka Status Update Karna (Available / Occupied)
+updateTableStatus:
+UPDATE TablesEntity
+SET status = ?
+WHERE id = ?;
+
+-- Table Delete Karna
+deleteTable:
+DELETE FROM TablesEntity
+WHERE id = ?;
+
+-- Table ke liye Order Create Karna
+createOrder:
+INSERT INTO OrdersEntity(tableId, totalAmount, orderStatus)
+VALUES (?, ?, 'PENDING');
+
+-- ATTACHED QUERY (JOIN): Active orders with Table Number
+getPendingOrdersWithTables:
+SELECT
+    OrdersEntity.id AS orderId,
+    TablesEntity.tableNumber,
+    OrdersEntity.totalAmount,
+    OrdersEntity.orderStatus
+FROM OrdersEntity
+INNER JOIN TablesEntity ON OrdersEntity.tableId = TablesEntity.id
+WHERE OrdersEntity.orderStatus = 'PENDING';

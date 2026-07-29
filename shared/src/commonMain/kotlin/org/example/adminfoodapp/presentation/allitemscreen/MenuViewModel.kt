@@ -2,7 +2,7 @@ package org.example.adminfoodapp.presentation.allitemscreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import org.example.adminfoodapp.data.model.AllMenu
+import org.example.adminfoodapp.database.model.AllMenu
 import org.example.adminfoodapp.domain.usecase.GetMenuItemsUseCase
 import org.example.adminfoodapp.domain.usecase.MenuItemDeleteUseCase
 import org.example.adminfoodapp.utils.Resource

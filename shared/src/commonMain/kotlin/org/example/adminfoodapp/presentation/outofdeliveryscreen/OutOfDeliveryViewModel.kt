@@ -2,7 +2,7 @@ package org.example.adminfoodapp.presentation.outofdeliveryscreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import org.example.adminfoodapp.data.model.OrderDetails
+import org.example.adminfoodapp.database.model.OrderDetails
 import org.example.adminfoodapp.domain.usecase.GetCompleteOrderUseCase
 import org.example.adminfoodapp.utils.Resource
 import kotlinx.coroutines.flow.MutableStateFlow

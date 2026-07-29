@@ -1,8 +1,8 @@
-package org.example.adminfoodapp.data.repository
+package org.example.adminfoodapp.database.repository
 
 import org.example.adminfoodapp.utils.Resource
-import org.example.adminfoodapp.data.model.UserModel
-import org.example.adminfoodapp.data.remote.FirebaseAuthenticationDataSource
+import org.example.adminfoodapp.database.model.UserModel
+import org.example.adminfoodapp.database.remote.FirebaseAuthenticationDataSource
 import org.example.adminfoodapp.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
 
@@ -20,11 +20,6 @@ class AuthRepositoryImpl(
 
     override fun getUsers() = dataSource.getUserList()
 
-    override fun updateUser(user: UserModel): Flow<Resource<Unit>> =
-        dataSource.updateUser(user)
-
-    override suspend fun reauthenticate(password: String): Resource<Unit> =
-        dataSource.reauthenticate(password)
 
     override suspend fun updateUserAccess(user: UserModel) =
         dataSource.updateUserAccess(user)

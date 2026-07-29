@@ -1,7 +1,7 @@
-package org.example.adminfoodapp.data.remote
+package org.example.adminfoodapp.database.remote
 
-import org.example.adminfoodapp.data.model.AllMenu
-import org.example.adminfoodapp.data.model.OrderDetails
+import org.example.adminfoodapp.database.model.AllMenu
+import org.example.adminfoodapp.database.model.OrderDetails
 import org.example.adminfoodapp.utils.CancelledBy
 import org.example.adminfoodapp.utils.Resource
 import dev.gitlive.firebase.database.DatabaseReference

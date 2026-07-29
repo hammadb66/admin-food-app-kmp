@@ -21,9 +21,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import org.example.adminfoodapp.data.model.OrderDetails
+import org.example.adminfoodapp.database.model.OrderDetails
 import org.example.adminfoodapp.navigaiton.NavRoutes
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
+import org.example.adminfoodapp.utils.ReceiptPrinter
 import org.example.adminfoodapp.utils.Resource
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
@@ -89,6 +90,8 @@ fun PendingOrderScreen(navController: NavHostController, sharedOrderItemViewMode
                                     // Logic for Dispatch
                                     viewModel.orderDispatch(order)
 
+                                    //want to print recipe here
+                                    ReceiptPrinter.printReceipt(order)
                                 }, onAccept = {
                                     // Logic for Accept
                                     viewModel.orderAccepted(order)
