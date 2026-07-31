@@ -7,12 +7,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import org.example.adminfoodapp.presentation.addgeneralitem.AddGeneralItemScreen
 import org.example.adminfoodapp.presentation.additemscreen.AddItemScreen
 import org.example.adminfoodapp.presentation.adminprofilescreen.AdminProfileScreen
 import org.example.adminfoodapp.presentation.allitemscreen.AllItemScreen
 import org.example.adminfoodapp.presentation.createuserscreen.CreateUserScreen
 import org.example.adminfoodapp.presentation.edititemscreen.EditItemScreen
 import org.example.adminfoodapp.presentation.edituserscreen.EditUserScreen
+import org.example.adminfoodapp.presentation.generalhistoryscreen.OrderHistoryScreen
 import org.example.adminfoodapp.presentation.loginscreen.LoginScreen
 import org.example.adminfoodapp.presentation.mainScreen.MainScreen
 import org.example.adminfoodapp.presentation.orderbillingscreen.OrderBillingScreen
@@ -79,12 +81,19 @@ fun NavGraph() {
                 EditItemScreen(navController = navController, sharedEditItemViewModel = sharedEditItemViewModel)
             }
             composable<NavRoutes.UserProfileScreen> {
-                UserProfileScreen(navController=navController)
+                UserProfileScreen(navController = navController)
             }
 
-            composable<NavRoutes.OrderBillingScreen> {backStackEntry->
-                val args=backStackEntry.toRoute<NavRoutes.OrderBillingScreen>()
-                OrderBillingScreen(navController=navController,args=args)
+            composable<NavRoutes.OrderBillingScreen> { backStackEntry ->
+                val args = backStackEntry.toRoute<NavRoutes.OrderBillingScreen>()
+                OrderBillingScreen(navController = navController, args = args)
+            }
+
+            composable<NavRoutes.AddGeneralItemScreen> {
+                AddGeneralItemScreen(navController = navController)
+            }
+            composable<NavRoutes.OrderHistoryScreen> {
+                OrderHistoryScreen(navController = navController)
             }
 
         }

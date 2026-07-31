@@ -4,37 +4,38 @@ import kotlinx.serialization.Serializable
 
 sealed interface NavRoutes {
     @Serializable
-     object SplashScreen : NavRoutes
+    object SplashScreen : NavRoutes
 
     @Serializable
-     object LoginScreen : NavRoutes
+    object LoginScreen : NavRoutes
 
     @Serializable
-     object MainScreen : NavRoutes
+    object MainScreen : NavRoutes
 
     @Serializable
-     object AddItemScreen : NavRoutes
+    object AddItemScreen : NavRoutes
 
     @Serializable
-     object AllItemScreen : NavRoutes
+    object AllItemScreen : NavRoutes
 
     @Serializable
-     object OutOfDeliveryScreen : NavRoutes
+    object OutOfDeliveryScreen : NavRoutes
 
     @Serializable
-     object PendingOrderScreen : NavRoutes
+    object PendingOrderScreen : NavRoutes
 
     @Serializable
-     object AdminProfileScreen : NavRoutes
+    object AdminProfileScreen : NavRoutes
 
     @Serializable
-     object CreateUserScreen : NavRoutes
+    object CreateUserScreen : NavRoutes
 
     @Serializable
     object EditItemScreen : NavRoutes
 
     @Serializable
     object OrderDetailsScreen : NavRoutes
+
     @Serializable
     object EditUserScreen : NavRoutes
 
@@ -43,7 +44,21 @@ sealed interface NavRoutes {
 
     @Serializable
     object TableManagementScreen : NavRoutes
+
     @Serializable
-    data class OrderBillingScreen(val id:Long,val number:String) : NavRoutes
+    data class OrderBillingScreen(
+        val id: Long = 0L,
+        val number: String = "",
+        val isTakeAway: Boolean = false
+    ): NavRoutes
+
+
+    @Serializable
+    object AddGeneralItemScreen : NavRoutes
+
+
+    @Serializable
+    object OrderHistoryScreen : NavRoutes
+
 
 }

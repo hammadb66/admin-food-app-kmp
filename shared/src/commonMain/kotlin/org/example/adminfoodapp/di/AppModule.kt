@@ -11,5 +11,4 @@ import org.koin.dsl.module
 val appModule = module {
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Main) }
     single { ToastManager(get()) }
-    viewModel { OrderBillingViewModel(get()) }
 }

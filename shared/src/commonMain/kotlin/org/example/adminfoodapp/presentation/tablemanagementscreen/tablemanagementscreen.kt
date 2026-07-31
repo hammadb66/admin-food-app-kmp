@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -37,6 +38,11 @@ fun TableManagementScreen(navController: NavHostController) {
         topBar = {
             TopAppBar(
                 title = { Text("Restaurant Dine-In Tables", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -75,7 +81,6 @@ fun TableManagementScreen(navController: NavHostController) {
                         TableCardItem(
                             table = table,
                             onStatusToggle = {
-                                // Table par click hotay hi Order Billing Screen par le jayein with tableId!
                                 navController.navigate(NavRoutes.OrderBillingScreen(table.id,table.tableNumber))
                             },
                             onDelete = { viewModel.deleteTable(table.id) }

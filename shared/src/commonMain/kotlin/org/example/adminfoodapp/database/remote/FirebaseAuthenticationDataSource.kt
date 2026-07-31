@@ -1,20 +1,55 @@
 package org.example.adminfoodapp.database.remote
 
-import dev.gitlive.firebase.database.DatabaseReference
-import kotlinx.coroutines.channels.awaitClose
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOneOrNull
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.flowOn
+import org.example.adminfoodapp.database.DriverFactory
+import org.example.adminfoodapp.database.RestaurantDatabase
+import org.example.adminfoodapp.database.RestaurantDatabase.Companion.invoke
+import org.example.adminfoodapp.database.RestaurantQueries
 import org.example.adminfoodapp.database.model.UserModel
 import org.example.adminfoodapp.utils.Resource
 import org.example.adminfoodapp.utils.SessionManager
 
-class FirebaseAuthenticationDataSource(
-    private val db: DatabaseReference, private val sessionManager: SessionManager
+class FirebaseAuthenticationDataSource(driverFactory: DriverFactory,
+    private val sessionManager: SessionManager
 ) {
 
+    private val database = RestaurantDatabase(driverFactory.createDriver())
+    private val dbQueries = database.restaurantQueries
+
+
+
+
+    init {
+        // 🔥 First Time App Auto-Admin Setup:
+        // Agar naye Laptop/MSI par DB khali hoga toh default admin create kar dega!
+        seedDefaultAdminIfEmpty()
+    }
+
+    private fun seedDefaultAdminIfEmpty() {
+        try {
+            val userCount = dbQueries.getUsersCount().executeAsOne()
+            if (userCount == 0L) {
+                dbQueries.insertUser(
+                    name = "admin",
+                    password = "123",
+                    isAdmin = 1L,     // 1L = Admin (True)
+                    userAccess = 1L   // 1L = Full Access (True)
+                )
+                println("✅ Default Admin Auto-Created: Username: admin | Password: 123")
+            }
+        } catch (e: Exception) {
+            println("Error seeding admin: ${e.message}")
+        }
+    }
+
+    // 1. SIGN UP (Naya User Add Karna)
     fun signUp(user: UserModel): Flow<Resource<Unit>> = flow {
         emit(Resource.Loading)
         try {
@@ -24,109 +59,128 @@ class FirebaseAuthenticationDataSource(
                 return@flow
             }
 
-            val existingSnapshot = db.child("admin").orderByChild("name").equalTo(normalizedName).valueEvents.first()
-
-            if (existingSnapshot.exists) {
+            // Check karein username pehle se exist to nahi karta
+            val existingUser = dbQueries.getUserByName(normalizedName).executeAsOneOrNull()
+            if (existingUser != null) {
                 emit(Resource.Error("This User Name Not Available"))
                 return@flow
             }
 
-            val key = db.child("admin").push().key ?: return@flow emit(Resource.Error("Failed to generate user key"))
+            // Insert into SQLite DB (Boolean to 0/1 Long conversion)
+            dbQueries.insertUser(
+                name = normalizedName,
+                password = user.password ?: "",
+                isAdmin = if (user.admin == true) 1L else 0L,
+                userAccess = if (user.userAccess == true) 1L else 0L
+            )
 
-            val userWithKey = user.copy(key = key, name = normalizedName)
-            db.child("admin").child(key).setValue(userWithKey)
             emit(Resource.Success(Unit))
         } catch (e: Exception) {
             emit(Resource.Error(e.message ?: "Sign up failed"))
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
-    fun login(username: String, password: String): Flow<Resource<UserModel>> = callbackFlow {
-        trySend(Resource.Loading)
+    // 2. LOGIN (Verify Credentials & Save Active Operator Session)
+    fun login(username: String, password: String): Flow<Resource<UserModel>> = flow {
+        emit(Resource.Loading)
         try {
             val normalizedName = username.trim()
+            val userEntity = dbQueries.getUserByName(normalizedName).executeAsOneOrNull()
 
-            val snapshot = db.child("admin").orderByChild("name").equalTo(normalizedName).valueEvents.first()
-
-            var matchedUser: UserModel? = null
-            for (child in snapshot.children) {
-                val candidate = child.value<UserModel?>()
-                if (candidate?.password == password) {
-                    matchedUser = candidate
-                    break
-                }
+            if (userEntity == null || userEntity.password != password) {
+                emit(Resource.Error("Invalid username or password"))
+                return@flow
             }
 
-            if (matchedUser == null) {
-                trySend(Resource.Error("Invalid username or password"))
-                close()
-                return@callbackFlow
-            }
+            // Convert SQLite Entity to UserModel (1L == true, 0L == false)
+            val matchedUser = UserModel(
+                key = userEntity.id.toString(),
+                name = userEntity.name,
+                password = userEntity.password,
+                admin = userEntity.isAdmin == 1L,
+                userAccess = userEntity.userAccess == 1L
+            )
 
-            sessionManager.saveCurrentUserKey(matchedUser.key ?: "")
-            trySend(Resource.Success(matchedUser))
-            close()
+            // 🔥 SECURITY SESSION: ID aur Active Name dono local settings mein save kar rahe hain
+            sessionManager.saveSession(
+                userKey = matchedUser.key ?: "",
+                userName = matchedUser.name ?: "Admin"
+            )
+
+            emit(Resource.Success(matchedUser))
         } catch (e: Exception) {
-            trySend(Resource.Error(e.message ?: "Login failed"))
-            close()
+            emit(Resource.Error(e.message ?: "Login failed"))
         }
-        awaitClose()
-    }
+    }.flowOn(Dispatchers.IO)
 
-    fun currentUser(): Flow<Resource<UserModel>> = callbackFlow {
-        trySend(Resource.Loading)
+    // 3. CURRENT USER (Active Session Fetching)
+    fun currentUser(): Flow<Resource<UserModel>> = flow {
+        emit(Resource.Loading)
         val key = sessionManager.getCurrentUserKey()
         if (key.isNullOrBlank()) {
-            trySend(Resource.Error("No active session"))
-            close()
-            return@callbackFlow
+            emit(Resource.Error("No active session"))
+            return@flow
         }
 
-        val userRef = db.child("admin").child(key)
-        val job = launch {
-            try {
-                userRef.valueEvents.collect { snapshot ->
-                    val user = snapshot.value<UserModel?>()
-                    if (user != null) trySend(Resource.Success(user))
-                    else trySend(Resource.Error("User data not found"))
+        val userId = key.toLongOrNull() ?: 0L
+
+        dbQueries.getUserById(userId)
+            .asFlow()
+            .mapToOneOrNull(Dispatchers.IO)
+            .collect { entity ->
+                if (entity != null) {
+                    val user = UserModel(
+                        key = entity.id.toString(),
+                        name = entity.name,
+                        password = entity.password,
+                        admin = entity.isAdmin == 1L,
+                        userAccess = entity.userAccess == 1L
+                    )
+                    emit(Resource.Success(user))
+                } else {
+                    emit(Resource.Error("User data not found"))
                 }
-            } catch (e: Exception) {
-                trySend(Resource.Error(e.message.toString()))
             }
-        }
-        awaitClose { job.cancel() }
     }
 
+    // 4. SESSION LOGOUT
     suspend fun sessionOut() {
         sessionManager.clearSession()
     }
 
-
-    fun getUserList(): Flow<Resource<List<UserModel>>> = callbackFlow {
-        trySend(Resource.Loading)
-        val ref = db.child("admin")
-        val job = launch {
-            try {
-                ref.valueEvents.collect { snapshot ->
-                    val list = snapshot.children.mapNotNull {
-                        try {
-                            it.value<UserModel?>()
-                        } catch (e: Exception) {
-                            null
-                        }
+    // 5. GET ALL USERS LIST (Admin Panel Ke Liye)
+    fun getUserList(): Flow<Resource<List<UserModel>>> = flow {
+        emit(Resource.Loading)
+        try {
+            dbQueries.getAllUsers()
+                .asFlow()
+                .mapToList(Dispatchers.IO)
+                .collect { entityList ->
+                    val userList = entityList.map { entity ->
+                        UserModel(
+                            key = entity.id.toString(),
+                            name = entity.name,
+                            password = entity.password,
+                            admin = entity.isAdmin == 1L,
+                            userAccess = entity.userAccess == 1L
+                        )
                     }
-                    trySend(Resource.Success(list))
+                    emit(Resource.Success(userList))
                 }
-            } catch (e: Exception) {
-                trySend(Resource.Error(e.message.toString()))
-            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Failed to load users"))
         }
-        awaitClose { job.cancel() }
     }
 
+    // 6. UPDATE USER ACCESS & PERMISSIONS
     fun updateUserAccess(user: UserModel): Flow<Resource<Unit>> = flow {
         emit(Resource.Loading)
-        val key = user.key ?: return@flow emit(Resource.Error("Missing user key"))
+        val userId = user.key?.toLongOrNull()
+        if (userId == null) {
+            emit(Resource.Error("Missing user key"))
+            return@flow
+        }
+
         try {
             val normalizedName = user.name?.trim()
             if (normalizedName.isNullOrBlank()) {
@@ -134,30 +188,25 @@ class FirebaseAuthenticationDataSource(
                 return@flow
             }
 
-            val existingSnapshot = db.child("admin").orderByChild("name").equalTo(normalizedName).valueEvents.first()
-            if (existingSnapshot.exists) {
-                emit(Resource.Error("This user name not available"))
-                return@flow
-            }
+            dbQueries.updateUserAccess(
+                id = userId,
+                name = normalizedName,
+                password = user.password ?: "",
+                isAdmin = if (user.admin == true) 1L else 0L,
+                userAccess = if (user.userAccess == true) 1L else 0L
+            )
 
-
-            val userMap = mapOf(
-                "name" to user.name, "password" to user.password, "admin" to user.admin, "userAccess" to user.userAccess
-            ).filterValues { it != null }
-
-            db.child("admin").child(key).updateChildren(userMap)
             emit(Resource.Success(Unit))
         } catch (e: Exception) {
             emit(Resource.Error(e.message ?: "Failed to update access"))
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
-
+    // 7. DELETE USER
     suspend fun deleteUser(id: String) {
+        val userId = id.toLongOrNull() ?: return
         try {
-            db.child("admin").child(id).removeValue()
-
-        } catch (e: Exception) {
-        }
+            dbQueries.deleteUserById(userId)
+        } catch (_: Exception) { }
     }
 }

@@ -1,5 +1,6 @@
 package org.example.adminfoodapp.presentation.orderbillingscreen
 
+import GoldAccent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -7,179 +8,255 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import org.example.adminfoodapp.database.OrderItemsEntity
+import org.example.adminfoodapp.database.GenralItemsEntity
 import org.example.adminfoodapp.navigaiton.NavRoutes
+import org.example.adminfoodapp.utils.Resource
 import org.koin.compose.viewmodel.koinViewModel
-
-// Quick Menu Selection Catalog (Testing ke liye sample food items)
-data class MenuItemSample(val id: Long, val name: String, val price: Double)
-
-val sampleMenuItems = listOf(
-    MenuItemSample(1, "Chicken Pizza", 1200.0),
-    MenuItemSample(2, "Zinger Burger", 450.0),
-    MenuItemSample(3, "Club Sandwich", 350.0),
-    MenuItemSample(4, "Fries (Large)", 200.0),
-    MenuItemSample(5, "Cold Drink 1.5L", 180.0),
-    MenuItemSample(6, "Mineral Water", 80.0)
-)
 
 @Composable
 fun OrderBillingScreen(args: NavRoutes.OrderBillingScreen, navController: NavHostController) {
     val viewModel: OrderBillingViewModel = koinViewModel()
-    val orderItems by viewModel.orderItems.collectAsState()
+    val billItems by viewModel.billItems.collectAsState()
+    val generalItem by viewModel.allGeneralItem.collectAsState()
+    val showBatchVoidDialog by viewModel.showBatchVoidDialog.collectAsState()
 
-    val tableId=args.id
-    val tableNumber=args.number
+    var customerName by remember { mutableStateOf("") }
+    var customerNumber by remember { mutableStateOf("") }
+    val tableId = args.id
+    val tableNumber = args.number
+    val isTakeAway = args.isTakeAway
 
-    // Screen start hotay hi is table ka order/session attach karein
+    val isCustomerNameValid = if (isTakeAway) customerName.isNotBlank() else true
+
+    LaunchedEffect(Unit) {
+        viewModel.checkoutSuccess.collect { navController.navigateUp() }
+    }
+
     LaunchedEffect(tableId) {
         viewModel.loadTableOrder(tableId)
     }
 
-    // Checkout hone par auto back navigation
-    LaunchedEffect(Unit) {
-        viewModel.checkoutSuccess.collect {
-//            onBackClick()
-        }
-    }
+    val grandTotal = billItems.sumOf { it.price * it.workingQuantity }
 
-    val totalBill = orderItems.sumOf { it.price * it.quantity }
+    // Unprinted Increments exist?
+    val hasUnprintedIncrements = billItems.any { it.unprintedIncrement > 0 }
+
+    // Pending Decrements exist? (Items reduced below printed baseline)
+    val pendingDecrementsList = billItems.filter { it.pendingDecrement > 0 }
+    val hasPendingDecrements = pendingDecrementsList.isNotEmpty()
+
+    // Batch Void Dialog
+    if (showBatchVoidDialog) {
+        BatchVoidReasonDialog(
+            decreasedItems = pendingDecrementsList,
+            onConfirm = { reason -> viewModel.confirmBatchVoid(reason) },
+            onDismiss = { viewModel.closeBatchVoidDialog() }
+        )
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                Text("Table $tableNumber - Billing & Order", fontWeight = FontWeight.Bold)
-            }, navigationIcon = {
-                IconButton(onClick = {navController.navigateUp()}) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            }, colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+                    Text(
+                        if (isTakeAway) "Takeaway Order - Billing" else "Table ${args.number} - Billing",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        viewModel.revertUnsavedChanges()
+                        navController.navigateUp()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (hasPendingDecrements || hasUnprintedIncrements) {
+                        TextButton(onClick = { viewModel.revertUnsavedChanges() }) {
+                            Text("Revert Edits", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             )
-            )
-        }) { innerPadding ->
-        Row(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
         ) {
-            // ================= LEFT SIDE: MENU SELECTION CATALOG =================
-            Column(
-                modifier = Modifier.weight(1.2f).fillMaxHeight()
-            ) {
-                Text(
-                    "Quick Menu Catalog",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+            // PENDING DECREMENTS TOP ALERT BANNER
+            if (hasPendingDecrements) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                 ) {
-                    items(sampleMenuItems) { menu ->
-                        Card(
-                            onClick = {
-                                viewModel.addItemToOrder(menu.id, menu.name, menu.price)
-                            }, shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                    Row(
+                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("⚠️ Items Decreased / Deleted", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
+                            Text("${pendingDecrementsList.sumOf { it.pendingDecrement }} items pending cancellation audit log", fontSize = 12.sp)
+                        }
+                        Button(
+                            onClick = { viewModel.openBatchVoidDialog() },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(menu.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                Text(
-                                    "Rs. ${menu.price.toInt()}",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            Text("Confirm & Reason")
                         }
                     }
                 }
             }
 
-            // ================= RIGHT SIDE: LIVE ORDER SUMMARY & BILL =================
-            Card(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp)
-                ) {
-                    Text(
-                        "Current Table Receipt",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = customerName,
+                    onValueChange = { customerName = it },
+                    modifier = Modifier.weight(1f),
+                    label = { Text(if (isTakeAway) "Customer Name *" else "Customer Name (Optional)") },
+                    isError = isTakeAway && customerName.isBlank(), // Error highlight if empty in Takeaway
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = customerNumber,
+                    onValueChange = { customerNumber = it },
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Customer Phone") },
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
 
-                    // Order Items List
-                    if (orderItems.isEmpty()) {
-                        Box(
-                            modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center
-                        ) {
-                            Text("No items added yet", color = Color.Gray)
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(orderItems, key = { it.id }) { item ->
-                                OrderItemRow(
-                                    item = item,
-                                    onIncrease = { viewModel.updateQuantity(item, 1) },
-                                    onDecrease = { viewModel.updateQuantity(item, -1) },
-                                    onRemove = { viewModel.removeItem(item) })
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // MENU CATALOG (LEFT)
+                Column(modifier = Modifier.weight(1.2f).fillMaxHeight()) {
+                    Text("Quick Menu Catalog", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                    Spacer(Modifier.height(8.dp))
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (generalItem is Resource.Success) {
+                            val sampleMenuItems = (generalItem as Resource.Success<List<GenralItemsEntity>>).data
+                            items(sampleMenuItems) { menu ->
+                                Card(
+                                    onClick = { viewModel.addItem(menu.id, menu.itemName, menu.price) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Column(modifier = Modifier.padding(14.dp)) {
+                                        Text(menu.itemName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text("Rs. ${menu.price.toInt()}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
                         }
                     }
+                }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                // RECEIPT & BILL (RIGHT)
+                Card(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                        Text("Current Table Receipt", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-                    // Bill Total Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Total Amount:", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Rs. ${totalBill.toInt()}",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                        Spacer(Modifier.height(8.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        if (billItems.isEmpty()) {
+                            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Text("No items in bill", color = Color.Gray)
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(billItems, key = { it.menuItemId }) { item ->
+                                    BillItemRow(
+                                        item = item,
+                                        onIncrease = { viewModel.addItem(item.menuItemId, item.itemName, item.price) },
+                                        onDecrease = { viewModel.decreaseItem(item.menuItemId) },
+                                        onDelete = { viewModel.deleteItem(item.menuItemId) }
+                                    )
+                                }
+                            }
+                        }
 
-                    // Checkout Button
-                    Button(
-                        onClick = { viewModel.checkoutAndPrintBill() },
-                        enabled = orderItems.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Checkout & Free Table", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Total Amount:", style = MaterialTheme.typography.titleMedium)
+                            Text("Rs. ${grandTotal.toInt()}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // PRINT BUTTON (Active if Unprinted Increments or Drafts exist)
+                        Button(
+                            onClick = { viewModel.printAndSaveOrder(customerName, customerNumber, isTakeAway) },
+                            enabled = hasUnprintedIncrements && !hasPendingDecrements && isCustomerNameValid,
+                            colors = ButtonDefaults.buttonColors(containerColor = GoldAccent),
+                            modifier = Modifier.fillMaxWidth().height(46.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Print, contentDescription = null, tint = Color.Black)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (isTakeAway) "Print Takeaway KOT / Slip" else "Print Extra / Send KOT",
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // CHECKOUT BUTTON
+                        OutlinedButton(
+                            onClick = { viewModel.checkoutAndFreeTable(isTakeAway) },
+                            enabled = billItems.isNotEmpty() && !hasUnprintedIncrements && !hasPendingDecrements && isCustomerNameValid,
+                            modifier = Modifier.fillMaxWidth().height(46.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(
+                                if (isTakeAway) "Complete Takeaway Order" else "Checkout & Free Table",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -188,11 +265,63 @@ fun OrderBillingScreen(args: NavRoutes.OrderBillingScreen, navController: NavHos
 }
 
 @Composable
-fun OrderItemRow(
-    item: OrderItemsEntity, onIncrease: () -> Unit, onDecrease: () -> Unit, onRemove: () -> Unit
+fun BatchVoidReasonDialog(
+    decreasedItems: List<BillItemUiState>,
+    onConfirm: (reason: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var reasonText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Confirm Item Reductions", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("The following printed items were reduced/deleted:")
+                LazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
+                    items(decreasedItems) { item ->
+                        Text("• ${item.itemName}: -${item.pendingDecrement} Qty", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                OutlinedTextField(
+                    value = reasonText,
+                    onValueChange = { reasonText = it },
+                    label = { Text("Reason for Cancellation") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(reasonText) },
+                enabled = reasonText.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Save Void Log & Apply")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun BillItemRow(
+    item: BillItemUiState,
+    onIncrease: () -> Unit,
+    onDecrease: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                item.pendingDecrement > 0 -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                item.unprintedIncrement > 0 -> MaterialTheme.colorScheme.secondaryContainer
+                else -> MaterialTheme.colorScheme.surfaceContainerLow
+            }
+        ),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -201,29 +330,32 @@ fun OrderItemRow(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(item.itemName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text(
-                    "Rs. ${item.price.toInt()} x ${item.quantity} = Rs. ${(item.price * item.quantity).toInt()}",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(item.itemName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(Modifier.width(6.dp))
+
+                    // STATUS BADGES
+                    if (item.pendingDecrement > 0) {
+                        Text("[DECREASED -${item.pendingDecrement}]", color = MaterialTheme.colorScheme.error, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    } else if (item.unprintedIncrement > 0) {
+                        Text("[UNPRINTED +${item.unprintedIncrement}]", color = GoldAccent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    } else {
+                        Text("[PRINTED]", color = Color.Gray, fontSize = 10.sp)
+                    }
+                }
+                Text("Rs. ${item.price.toInt()} x ${item.workingQuantity}", fontSize = 12.sp, color = Color.DarkGray)
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onDecrease, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
-                Text("${item.quantity}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp))
+                Text("${item.workingQuantity}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
                 IconButton(onClick = onIncrease, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
-                IconButton(onClick = onRemove, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Remove",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp)
-                    )
+                IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                 }
             }
         }

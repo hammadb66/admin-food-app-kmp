@@ -27,6 +27,5 @@ val repositoryModule = module {
     single { MenuRepositoryImpl(get()) } bind MenuRepository::class
     single { NotificationRepositoryImpl(get()) } bind NotificationRepository::class
 
-    // 👈 2. Add Local SQLDelight Restaurant Repository
-    single { RestaurantRepository(get()) }
+    single { RestaurantRepository(get(),get()) }
 }

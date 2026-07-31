@@ -236,37 +236,34 @@ fun StatSmallCard(title: String, value: String, valueColor: Color, bgColor: Colo
 
 @Composable
 fun QuickActionsGrid(navController: NavController) {
-    // Naye Restaurant Operations Cards (Tables, Dine In, Takeaway) Yahan Add Kiye Hain:
     val items = listOf(
-        // 1. Tables Management
         QuickActionData(
-            "Table\nManagement", Color(0xFFE0F7FA), Color(0xFF00838F), Res.drawable.eye, NavRoutes.TableManagementScreen
+            "Dine-In\nOrders", Color(0xFFE0F7FA), Color(0xFF00838F), Res.drawable.eye, NavRoutes.TableManagementScreen
         ),
-        // 2. Dine-In Orders
         QuickActionData(
-            "Dine-In\nOrders", Color(0xFFEDE7F6), Color(0xFF512DA8), Res.drawable.order_processed, NavRoutes.OutOfDeliveryScreen
+            "Takeaway\nOrders", Color(0xFFEDE7F6), Color(0xFF512DA8), Res.drawable.order_processed, NavRoutes.OrderBillingScreen(isTakeAway = true)
         ),
-        // 3. Takeaway Orders
         QuickActionData(
-            "Takeaway\nOrders", Color(0xFFFFF3E0), Color(0xFFE65100), Res.drawable.attantion, NavRoutes.AdminProfileScreen
+            "Online\nPending", Color(0xFFFFF3E0), Color(0xFFE65100), Res.drawable.attantion, NavRoutes.PendingOrderScreen
         ),
-        // 4. Delivery Orders
         QuickActionData(
-            "Online\nDelivery", Color(0xFFE3F2FD), Color(0xFF1565C0), Res.drawable.order_processed, NavRoutes.OutOfDeliveryScreen
+            "Online\nHistory", Color(0xFFE3F2FD), Color(0xFF1565C0), Res.drawable.order_processed, NavRoutes.OutOfDeliveryScreen
         ),
-        // 5. Add Menu Item
         QuickActionData(
-            "Add Menu\nItem", Color(0xFFE8F5E9), Color(0xFF2E7D32), Res.drawable.pluse_round, NavRoutes.AddItemScreen
+            "General\nHistory", Color(0xFFE3F2FD), Color(0xFF1565C0), Res.drawable.order_processed, NavRoutes.OrderHistoryScreen
         ),
-        // 6. Catalog
         QuickActionData(
-            "All Items\nCatalog", Color(0xFFF3E5F5), Color(0xFF6A1B9A), Res.drawable.eye, NavRoutes.AllItemScreen
+            "Add Online\nMenu Item", Color(0xFFE8F5E9), Color(0xFF2E7D32), Res.drawable.pluse_round, NavRoutes.AddItemScreen
         ),
-        // 7. Admin Profile
+        QuickActionData(
+            "Online\nMenu Item", Color(0xFFE8F5E9), Color(0xFF2E7D32), Res.drawable.pluse_round, NavRoutes.AllItemScreen
+        ),
+        QuickActionData(
+            "General\nMenu Item", Color(0xFFF3E5F5), Color(0xFF6A1B9A), Res.drawable.eye, NavRoutes.AddGeneralItemScreen
+        ),
         QuickActionData(
             "Admin\nProfile", Color(0xFFFAFAFA), Color(0xFF424242), Res.drawable.user, NavRoutes.AdminProfileScreen
         ),
-        // 8. Create Sub-User
         QuickActionData(
             "Create New\nSub-User", Color(0xFFFFF8E1), Color(0xFFF9A825), Res.drawable.user_plus, NavRoutes.CreateUserScreen
         )

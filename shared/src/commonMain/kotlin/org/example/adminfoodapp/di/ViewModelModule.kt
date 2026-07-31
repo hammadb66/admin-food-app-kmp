@@ -27,7 +27,9 @@ import org.example.adminfoodapp.domain.usecase.SessionOutUseCase
 import org.example.adminfoodapp.domain.usecase.SignUpUseCase
 import org.example.adminfoodapp.domain.usecase.UpdateMenuItemUseCase
 import org.example.adminfoodapp.domain.usecase.UpdateUserAccessUseCase
+import org.example.adminfoodapp.presentation.addgeneralitem.AddGeneralItemViewModel
 import org.example.adminfoodapp.presentation.edituserscreen.EditUserViewModel
+import org.example.adminfoodapp.presentation.generalhistoryscreen.OrderHistoryViewModel
 import org.example.adminfoodapp.presentation.splashscreen.SplashViewModel
 import org.example.adminfoodapp.presentation.tablemanagementscreen.TableViewModel
 import org.example.adminfoodapp.presentation.userprofilescreen.UserProfileViewModel
@@ -79,5 +81,7 @@ val viewModelModule = module {
     viewModelOf(::EditUserViewModel)
     viewModelOf(::TableViewModel)
     viewModelOf(::OrderBillingViewModel)
+    viewModelOf(::AddGeneralItemViewModel)
+    viewModelOf(::OrderHistoryViewModel)
 
 }

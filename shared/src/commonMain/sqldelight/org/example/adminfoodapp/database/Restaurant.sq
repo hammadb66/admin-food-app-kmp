@@ -1,94 +1,193 @@
--- 1. Dine-In Tables Entity
-CREATE TABLE TablesEntity (
+    -- 1. Dine-In Tables Entity
+    CREATE TABLE TablesEntity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tableNumber TEXT NOT NULL UNIQUE,
+        capacity INTEGER NOT NULL DEFAULT 4,
+        status TEXT NOT NULL DEFAULT 'AVAILABLE'
+    );
+
+    -- 2. Menu Items Entity (Food Catalog)
+    CREATE TABLE GenralItemsEntity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        itemName TEXT NOT NULL,
+        price REAL NOT NULL,
+        category TEXT NOT NULL DEFAULT 'General'
+    );
+
+    -- 3. Main Orders Table (Dine-In + Takeaway + History)
+    CREATE TABLE OrdersEntity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tableId INTEGER,
+        customerName TEXT NOT NULL,
+        customerNumber INTEGER NOT NULL,
+        orderType TEXT NOT NULL,
+        totalAmount REAL NOT NULL DEFAULT 0.0,
+        orderStatus TEXT NOT NULL DEFAULT 'PENDING',
+        createdAt INTEGER NOT NULL,
+        createdByID INTEGER NOT NULL DEFAULT 0,
+        createdByName TEXT NOT NULL DEFAULT 'Admin'
+    );
+
+    -- 4. Order Detail Items Entity
+    CREATE TABLE OrderItemsEntity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        orderId INTEGER NOT NULL,
+        menuItemId INTEGER NOT NULL,
+        itemName TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        printedQuantity INTEGER NOT NULL DEFAULT 0, -- Track printed items count
+        price REAL NOT NULL,
+        FOREIGN KEY (orderId) REFERENCES OrdersEntity(id) ON DELETE CASCADE
+    );
+
+
+    -- 2. New Void/Cancellation Audit Log Table (Chori pakadne ke liye)
+    CREATE TABLE VoidLogsEntity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        orderId INTEGER NOT NULL,
+        itemName TEXT NOT NULL,
+        cancelledQuantity INTEGER NOT NULL,
+        unitPrice REAL NOT NULL,
+        reason TEXT NOT NULL DEFAULT 'Item Cancelled',
+        createdAt INTEGER NOT NULL,
+        voidByID INTEGER NOT NULL DEFAULT 0,
+        voidedByName TEXT NOT NULL DEFAULT 'Admin'
+    );
+
+
+CREATE TABLE UserEntity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tableNumber TEXT NOT NULL UNIQUE,
-    capacity INTEGER NOT NULL DEFAULT 4,
-    status TEXT NOT NULL DEFAULT 'AVAILABLE'
+    name TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    isAdmin INTEGER NOT NULL DEFAULT 0, -- 0 = Normal User, 1 = Admin
+    userAccess INTEGER NOT NULL DEFAULT 0
 );
+    ------------------ QUERIES ------------------
 
--- 2. Menu Items Entity (Food Catalog)
-CREATE TABLE MenuItemsEntity (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    itemName TEXT NOT NULL,
-    price REAL NOT NULL,
-    category TEXT NOT NULL DEFAULT 'General'
-);
+    -- Table Queries
+    getAllTables:
+    SELECT * FROM TablesEntity ORDER BY id ASC;
 
--- 3. Main Orders Table (Dine-In + Takeaway + History)
-CREATE TABLE OrdersEntity (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tableId INTEGER,
-    orderType TEXT NOT NULL,
-    totalAmount REAL NOT NULL DEFAULT 0.0,
-    orderStatus TEXT NOT NULL DEFAULT 'PENDING',
-    createdAt INTEGER NOT NULL
-);
+    insertTable:
+    INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status) VALUES (?, ?, 'AVAILABLE');
 
--- 4. Order Detail Items Entity
-CREATE TABLE OrderItemsEntity (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    orderId INTEGER NOT NULL,
-    menuItemId INTEGER NOT NULL,
-    itemName TEXT NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    price REAL NOT NULL,
-    FOREIGN KEY (orderId) REFERENCES OrdersEntity(id) ON DELETE CASCADE
-);
+    updateTableStatus:
+    UPDATE TablesEntity SET status = ? WHERE id = ?;
 
------------------- QUERIES ------------------
+    deleteTable:
+    DELETE FROM TablesEntity WHERE id = ?;
 
--- Table Queries
-getAllTables:
-SELECT * FROM TablesEntity ORDER BY id ASC;
+    -- Menu Catalog Queries
+    getAllMenuItems:
+    SELECT * FROM GenralItemsEntity;
 
-insertTable:
-INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status) VALUES (?, ?, 'AVAILABLE');
+    insertMenuItem:
+    INSERT OR REPLACE INTO GenralItemsEntity(itemName, price, category) VALUES (?, ?, ?);
 
-updateTableStatus:
-UPDATE TablesEntity SET status = ? WHERE id = ?;
+    -- Active Order Queries
+    getPendingOrderForTable:
+    SELECT * FROM OrdersEntity WHERE tableId = ? AND orderStatus = 'PENDING' LIMIT 1;
 
-deleteTable:
-DELETE FROM TablesEntity WHERE id = ?;
+    createNewOrder:
+    INSERT INTO OrdersEntity(tableId,customerName,customerNumber, orderType, totalAmount, orderStatus, createdAt,createdByID,createdByName)
+    VALUES (?,?,?, ?, ?, 'PENDING', ?,?,?);
 
--- Menu Catalog Queries
-getAllMenuItems:
-SELECT * FROM MenuItemsEntity;
+    -- Order Items Queries
+    getOrderItemsForOrder:
+    SELECT * FROM OrderItemsEntity WHERE orderId = ?;
 
-insertMenuItem:
-INSERT OR REPLACE INTO MenuItemsEntity(itemName, price, category) VALUES (?, ?, ?);
+    addOrderItem:
+    INSERT INTO OrderItemsEntity(orderId, menuItemId, itemName, quantity, price)
+    VALUES (?, ?, ?, ?, ?);
 
--- Active Order Queries
-getPendingOrderForTable:
-SELECT * FROM OrdersEntity WHERE tableId = ? AND orderStatus = 'PENDING' LIMIT 1;
+    updateOrderItemQuantity:
+    UPDATE OrderItemsEntity SET quantity = ? WHERE id = ?;
 
-createNewOrder:
-INSERT INTO OrdersEntity(tableId, orderType, totalAmount, orderStatus, createdAt)
-VALUES (?, ?, ?, 'PENDING', ?);
+    deleteOrderItem:
+    DELETE FROM OrderItemsEntity WHERE id = ?;
 
--- Order Items Queries
-getOrderItemsForOrder:
-SELECT * FROM OrderItemsEntity WHERE orderId = ?;
+    -- Checkout Queries
+    completeOrder:
+    UPDATE OrdersEntity SET orderStatus = 'COMPLETED', totalAmount = ? WHERE id = ?;
 
-addOrderItem:
-INSERT INTO OrderItemsEntity(orderId, menuItemId, itemName, quantity, price)
-VALUES (?, ?, ?, ?, ?);
+    -- History & Filtering Queries
+    getOrdersHistoryByDateRange:
+    SELECT * FROM OrdersEntity
+    WHERE orderStatus = 'COMPLETED' AND createdAt >= ? AND createdAt <= ?
+    ORDER BY createdAt DESC;
 
-updateOrderItemQuantity:
-UPDATE OrderItemsEntity SET quantity = ? WHERE id = ?;
+    getDailySalesTotal:
+    SELECT SUM(totalAmount) FROM OrdersEntity
+    WHERE orderStatus = 'COMPLETED' AND createdAt >= ?;
 
-deleteOrderItem:
-DELETE FROM OrderItemsEntity WHERE id = ?;
 
--- Checkout Queries
-completeOrder:
-UPDATE OrdersEntity SET orderStatus = 'COMPLETED', totalAmount = ? WHERE id = ?;
+    -- Save Void Audit Entry
+    insertVoidLog:
+    INSERT INTO VoidLogsEntity(orderId, itemName, cancelledQuantity, unitPrice, reason, createdAt,voidByID,voidedByName)
+    VALUES (?, ?, ?, ?, ?, ?,?,?);
 
--- History & Filtering Queries
-getOrdersHistoryByDateRange:
-SELECT * FROM OrdersEntity
-WHERE orderStatus = 'COMPLETED' AND createdAt >= ? AND createdAt <= ?
-ORDER BY createdAt DESC;
+    -- Owner Audit Report Query (Daily Cancellations)
+    getDailyVoidLogs:
+    SELECT * FROM VoidLogsEntity WHERE createdAt >= ? ORDER BY createdAt DESC;
 
-getDailySalesTotal:
-SELECT SUM(totalAmount) FROM OrdersEntity
-WHERE orderStatus = 'COMPLETED' AND createdAt >= ?;
+    -- Update Printed Quantity after Printing
+    updatePrintedQuantity:
+    UPDATE OrderItemsEntity SET printedQuantity = quantity WHERE orderId = ?;
+
+
+
+    getLastInsertedOrderId:
+    SELECT last_insert_rowid();
+
+
+    -- Date Range + Multi Search (Name, Phone, Table ID) ke mutabiq orders get karein
+    getOrdersHistory:
+    SELECT * FROM OrdersEntity
+    WHERE createdAt >= :startOfDay AND createdAt <= :endOfDay
+    AND (
+        customerName LIKE '%' || :searchQuery || '%'
+        OR customerNumber LIKE '%' || :searchQuery || '%'
+        OR CAST(tableId AS TEXT) LIKE '%' || :searchQuery || '%'
+    )
+    ORDER BY createdAt DESC;
+
+    -- Date Range ke mutabiq Void Audit Logs get karein
+    getVoidLogsHistory:
+    SELECT * FROM VoidLogsEntity
+    WHERE createdAt >= :startOfDay AND createdAt <= :endOfDay
+    ORDER BY createdAt DESC;
+
+
+
+
+
+    -- 1. Username se User dhoondna
+    getUserByName:
+    SELECT * FROM UserEntity WHERE name = :name;
+
+    -- 2. User ID se User dhoondna
+    getUserById:
+    SELECT * FROM UserEntity WHERE id = :id;
+
+    -- 3. Sare Users ki list
+    getAllUsers:
+    SELECT * FROM UserEntity;
+
+    -- 4. Naya User insert karna
+    insertUser:
+    INSERT INTO UserEntity(name, password, isAdmin, userAccess)
+    VALUES (?, ?, ?, ?);
+
+    -- 5. User Edit / Access Update karna
+    updateUserAccess:
+    UPDATE UserEntity
+    SET name = :name, password = :password, isAdmin = :isAdmin, userAccess = :userAccess
+    WHERE id = :id;
+
+    -- 6. User Delete karna
+    deleteUserById:
+    DELETE FROM UserEntity WHERE id = :id;
+
+    -- 7. Count check karna (Auto-Admin Seeding ke liye)
+    getUsersCount:
+    SELECT COUNT(*) FROM UserEntity;

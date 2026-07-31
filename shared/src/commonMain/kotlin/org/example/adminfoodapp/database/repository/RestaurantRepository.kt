@@ -3,23 +3,31 @@ package org.example.adminfoodapp.database.repository
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import org.example.adminfoodapp.database.*
+import org.example.adminfoodapp.utils.Resource
+import org.example.adminfoodapp.utils.SessionManager
 
-class RestaurantRepository(driverFactory: DriverFactory) {
+
+// Helper model for Batch Void Logging
+data class VoidLogBatchItem(
+    val orderId: Long, val itemName: String, val cancelledQuantity: Int, val unitPrice: Double
+)
+
+class RestaurantRepository(
+    driverFactory: DriverFactory, private val sessionManager: SessionManager
+) {
 
     private val database = RestaurantDatabase(driverFactory.createDriver())
     private val dbQueries = database.restaurantQueries
 
-    // Tables Operations
-    fun getAllTables(): Flow<List<TablesEntity>> = dbQueries.getAllTables().asFlow().mapToList(Dispatchers.IO)
-    fun addTable(tableNumber: String, capacity: Long) = dbQueries.insertTable(tableNumber, capacity)
-    fun updateTableStatus(tableId: Long, status: String) = dbQueries.updateTableStatus(status, tableId)
-    fun deleteTable(tableId: Long) = dbQueries.deleteTable(tableId)
 
     // Active Table Order Get or Create
-    fun getOrCreatePendingOrder(tableId: Long, currentTimeStamp: Long): Long {
+    fun getOrCreatePendingOrder(
+        customerName: String, customerNumber: Long, tableId: Long, currentTimeStamp: Long
+    ): Long {
         val pendingOrder = dbQueries.getPendingOrderForTable(tableId).executeAsOneOrNull()
         if (pendingOrder != null) {
             return pendingOrder.id
@@ -29,8 +37,12 @@ class RestaurantRepository(driverFactory: DriverFactory) {
         dbQueries.createNewOrder(
             tableId = tableId,
             orderType = "DINE_IN",
+            customerName = customerName,
+            customerNumber = customerNumber,
             totalAmount = 0.0,
-            createdAt = currentTimeStamp
+            createdAt = currentTimeStamp,
+            createdByID = sessionManager.getCurrentUserKey().toString().toLong(),
+            createdByName = sessionManager.getCurrentUserName()
         )
         // Table Ko Occupied Red Kar dein
         dbQueries.updateTableStatus("OCCUPIED", tableId)
@@ -38,17 +50,17 @@ class RestaurantRepository(driverFactory: DriverFactory) {
         return dbQueries.getPendingOrderForTable(tableId).executeAsOne().id
     }
 
-    // Order Items Operations
-    fun getOrderItems(orderId: Long): Flow<List<OrderItemsEntity>> =
-        dbQueries.getOrderItemsForOrder(orderId).asFlow().mapToList(Dispatchers.IO)
-
     fun addOrIncrementItem(orderId: Long, menuItemId: Long, itemName: String, price: Double) {
         val existingItems = dbQueries.getOrderItemsForOrder(orderId).executeAsList()
         val match = existingItems.find { it.menuItemId == menuItemId }
 
         if (match != null) {
+            println("match")
+
             dbQueries.updateOrderItemQuantity(match.quantity + 1, match.id)
         } else {
+            println("not match")
+
             dbQueries.addOrderItem(orderId, menuItemId, itemName, 1, price)
         }
     }
@@ -63,19 +75,228 @@ class RestaurantRepository(driverFactory: DriverFactory) {
 
     fun removeItem(orderItemId: Long) = dbQueries.deleteOrderItem(orderItemId)
 
-    // Checkout & Bill
-    fun checkoutOrder(orderId: Long, tableId: Long, finalAmount: Double) {
-        dbQueries.completeOrder(finalAmount, orderId)
-        dbQueries.updateTableStatus("AVAILABLE", tableId)
+    fun addGeneralItem(name: String, price: Double, category: String) {
+        dbQueries.insertMenuItem(name, price, category)
     }
 
 
-    // Dynamic Menu Items Get & Add
-    fun getAllMenuItems(): Flow<List<MenuItemsEntity>> =
-        dbQueries.getAllMenuItems().asFlow().mapToList(Dispatchers.IO)
+    fun updateCommittedQuantity(orderItemId: Long, newQuantity: Long) {
+        if (newQuantity <= 0) {
+            dbQueries.deleteOrderItem(orderItemId)
+        } else {
+            dbQueries.updateOrderItemQuantity(newQuantity, orderItemId)
+        }
+    }
 
-    fun addMenuItem(name: String, price: Double, category: String) {
-        dbQueries.insertMenuItem(name, price, category)
+    fun removeCommittedItem(orderItemId: Long) = dbQueries.deleteOrderItem(orderItemId)
+
+
+    // Tables Operations
+    fun getAllTables(): Flow<List<TablesEntity>> = dbQueries.getAllTables().asFlow().mapToList(Dispatchers.IO)
+    fun addTable(tableNumber: String, capacity: Long) = dbQueries.insertTable(tableNumber, capacity)
+    fun updateTableStatus(tableId: Long, status: String) = dbQueries.updateTableStatus(status, tableId)
+    fun deleteTable(tableId: Long) = dbQueries.deleteTable(tableId)
+
+    // Check if Active Order exists
+    fun getPendingOrderForTable(tableId: Long): OrdersEntity? {
+        return dbQueries.getPendingOrderForTable(tableId).executeAsOneOrNull()
+    }
+
+    // Create Order and Occupy Table
+    fun createOrderAndOccupyTable(
+        customerName: String, customerNumber: Long, tableId: Long, currentTimeStamp: Long
+    ): Long {
+        dbQueries.createNewOrder(
+            tableId = tableId,
+            orderType = "DINE_IN",
+            customerName = customerName,
+            customerNumber = customerNumber,
+            totalAmount = 0.0,
+            createdAt = currentTimeStamp,
+            createdByID = sessionManager.getCurrentUserKey().toString().toLong(),
+            createdByName = sessionManager.getCurrentUserName()
+        )
+        dbQueries.updateTableStatus("OCCUPIED", tableId)
+        return dbQueries.getPendingOrderForTable(tableId).executeAsOne().id
+    }
+
+//    // Commit Draft Items into Database (Initial printedQuantity = 0)
+//    fun commitDraftItems(orderId: Long, draftItems: List<DraftItem>) {
+//        val existingItems = dbQueries.getOrderItemsForOrder(orderId).executeAsList()
+//
+//        draftItems.forEach { draft ->
+//            val match = existingItems.find { it.menuItemId == draft.menuItemId }
+//            if (match != null) {
+//                // Pehle se mavjood item me quantity barhain
+//                dbQueries.updateOrderItemQuantity(match.quantity + draft.quantity, match.id)
+//            } else {
+//                // Naya item insert karain
+//                dbQueries.addOrderItem(
+//                    orderId = orderId,
+//                    menuItemId = draft.menuItemId,
+//                    itemName = draft.itemName,
+//                    quantity = draft.quantity.toLong(),
+//                    price = draft.price
+//                )
+//            }
+//        }
+//    }
+
+    // Observe Saved DB Items
+    fun getOrderItems(orderId: Long): Flow<List<OrderItemsEntity>> =
+        dbQueries.getOrderItemsForOrder(orderId).asFlow().mapToList(Dispatchers.IO)
+
+    // Increase Saved Item Quantity (Increases 'quantity' BUT leaves 'printedQuantity' as-is for delta print)
+    fun increaseCommittedItemQuantity(orderItemId: Long, newQuantity: Long) {
+        dbQueries.updateOrderItemQuantity(newQuantity, orderItemId)
+    }
+
+
+    // Update Printed Quantity to Match Total Quantity after Printing
+    fun markOrderAsPrinted(orderId: Long) {
+        dbQueries.updatePrintedQuantity(orderId)
+    }
+
+    // Complete Order & Free Table
+// Complete Order & Free Table
+    fun checkoutOrder(orderId: Long, tableId: Long?, finalAmount: Double) {
+        dbQueries.completeOrder(finalAmount, orderId)
+
+        // Agar Table ID majood thi toh hi AVAILABLE mark karo
+        if (tableId != null && tableId > 0) {
+            dbQueries.updateTableStatus("AVAILABLE", tableId)
+        }
+    }
+
+    fun createOrder(
+        customerName: String, customerNumber: Long, tableId: Long?, orderType: String, currentTimeStamp: Long
+    ): Long {
+        return database.transactionWithResult {
+            dbQueries.createNewOrder(
+                tableId = tableId ?: 0L,
+                orderType = orderType,
+                customerName = customerName,
+                customerNumber = customerNumber,
+                totalAmount = 0.0,
+                createdAt = currentTimeStamp,
+                createdByID = sessionManager.getCurrentUserKey().toString().toLong(),
+                createdByName = sessionManager.getCurrentUserName()
+            )
+
+            // Sirf Dine-In orders par table status OCCUPIED hoga
+            if (orderType == "DINE_IN" && tableId != null && tableId > 0) {
+                dbQueries.updateTableStatus("OCCUPIED", tableId)
+                dbQueries.getPendingOrderForTable(tableId).executeAsOne().id
+            } else {
+                // Takeaway ke liye last inserted order ID return karein
+                dbQueries.getLastInsertedOrderId().executeAsOne()
+            }
+        }
+    }
+
+    // Catalog Menu
+    fun getAllMenuItems(): Flow<Resource<List<GenralItemsEntity>>> = flow {
+        emit(Resource.Loading)
+        try {
+            dbQueries.getAllMenuItems().asFlow().mapToList(Dispatchers.IO).collect { filterList ->
+                emit(Resource.Success(filterList))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.message ?: "Error"))
+        }
+    }
+
+
+    // Save/Update Items in DB & Sync printedQuantity after Printing
+    fun commitAndPrintOrder(
+        orderId: Long, itemsToSave: List<Triple<Long?, Long, String>>, // (dbId, menuItemId, itemName)
+        quantities: Map<Long, Int>, // menuItemId -> target quantity
+        prices: Map<Long, Double>
+    ) {
+        database.transaction {
+            itemsToSave.forEach { (dbId, menuItemId, itemName) ->
+                val targetQty = quantities[menuItemId] ?: 0
+                val price = prices[menuItemId] ?: 0.0
+
+                if (dbId != null) {
+                    if (targetQty <= 0) {
+                        dbQueries.deleteOrderItem(dbId)
+                    } else {
+                        dbQueries.updateOrderItemQuantity(targetQty.toLong(), dbId)
+                    }
+                } else if (targetQty > 0) {
+                    dbQueries.addOrderItem(
+                        orderId = orderId,
+                        menuItemId = menuItemId,
+                        itemName = itemName,
+                        quantity = targetQty.toLong(),
+                        price = price
+                    )
+                }
+            }
+            // Sync printedQuantity = quantity for all items of this order
+            dbQueries.updatePrintedQuantity(orderId)
+        }
+    }
+
+    // Process Batch Void Log & Apply Decrements in DB
+    fun processBatchVoid(
+        orderId: Long, tableId: Long, // 👈 1. Pass tableId here
+        voidItems: List<VoidLogBatchItem>, reason: String, decreasedItemsMap: Map<Long, Int>
+    ) {
+        database.transaction {
+            // 1. Insert Void Audit Trail Logs
+            val timeStamp = System.currentTimeMillis()
+            voidItems.forEach { voidItem ->
+                dbQueries.insertVoidLog(
+                    orderId = voidItem.orderId,
+                    itemName = voidItem.itemName,
+                    cancelledQuantity = voidItem.cancelledQuantity.toLong(),
+                    unitPrice = voidItem.unitPrice,
+                    reason = reason.ifBlank { "Customer Cancelled / Decreased" },
+                    createdAt = timeStamp,
+                    voidByID = sessionManager.getCurrentUserKey().toString().toLong(),
+                    voidedByName = sessionManager.getCurrentUserName()
+                )
+            }
+
+            // 2. Update/Delete items in DB
+            decreasedItemsMap.forEach { (dbId, newQty) ->
+                if (newQty <= 0) {
+                    dbQueries.deleteOrderItem(dbId)
+                } else {
+                    dbQueries.updateOrderItemQuantity(newQty.toLong(), dbId)
+                    dbQueries.updatePrintedQuantity(orderId)
+                }
+            }
+
+            // 👈 3. CHECK IF ORDER IS NOW EMPTY
+            val remainingItems = dbQueries.getOrderItemsForOrder(orderId).executeAsList()
+            if (remainingItems.isEmpty()) {
+                // Table ko wapas Green / AVAILABLE kar do!
+                dbQueries.updateTableStatus("AVAILABLE", tableId)
+                // Empty order ko finish/close kar do
+                dbQueries.completeOrder(0.0, orderId)
+            }
+        }
+    }
+
+
+    // Date & Search Query ke mutabiq Orders History
+    fun getOrdersHistory(startOfDay: Long, endOfDay: Long, searchQuery: String): Flow<List<OrdersEntity>> {
+        return dbQueries.getOrdersHistory(startOfDay, endOfDay, searchQuery).asFlow().mapToList(Dispatchers.IO)
+    }
+
+    // Date Range ke mutabiq Void Audit Logs History
+    fun getVoidLogsHistory(startOfDay: Long, endOfDay: Long): Flow<List<VoidLogsEntity>> {
+        return dbQueries.getVoidLogsHistory(startOfDay, endOfDay).asFlow().mapToList(Dispatchers.IO)
+    }
+
+    // Specific Order ke items fetch karein (Re-print ke liye)
+    suspend fun getOrderItemsForReprint(orderId: Long): List<OrderItemsEntity> {
+        return withContext(Dispatchers.IO) {
+            dbQueries.getOrderItemsForOrder(orderId).executeAsList()
+        }
     }
 
 }

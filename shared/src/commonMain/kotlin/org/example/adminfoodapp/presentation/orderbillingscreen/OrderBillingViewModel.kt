@@ -4,83 +4,242 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.database.GenralItemsEntity
 import org.example.adminfoodapp.database.OrderItemsEntity
 import org.example.adminfoodapp.database.repository.RestaurantRepository
+import org.example.adminfoodapp.database.repository.VoidLogBatchItem
+import org.example.adminfoodapp.utils.Resource
+
+// Unified Item UI State
+data class BillItemUiState(
+    val dbId: Long? = null,           // Null for new drafts
+    val menuItemId: Long,
+    val itemName: String,
+    val price: Double,
+    val printedQuantity: Int = 0,     // Saved Baseline in DB
+    var workingQuantity: Int = 1      // Current UI working quantity
+) {
+    val unprintedIncrement: Int
+        get() = if (workingQuantity > printedQuantity) workingQuantity - printedQuantity else 0
+
+    val pendingDecrement: Int
+        get() = if (workingQuantity < printedQuantity) printedQuantity - workingQuantity else 0
+}
 
 class OrderBillingViewModel(
     private val repository: RestaurantRepository
 ) : ViewModel() {
 
-    private val _orderItems = MutableStateFlow<List<OrderItemsEntity>>(emptyList())
-    val orderItems: StateFlow<List<OrderItemsEntity>> = _orderItems.asStateFlow()
+    private val _billItems = MutableStateFlow<List<BillItemUiState>>(emptyList())
+    val billItems: StateFlow<List<BillItemUiState>> = _billItems.asStateFlow()
+
+    private val _showBatchVoidDialog = MutableStateFlow(false)
+    val showBatchVoidDialog: StateFlow<Boolean> = _showBatchVoidDialog.asStateFlow()
 
     private val _checkoutSuccess = MutableSharedFlow<Unit>()
     val checkoutSuccess: SharedFlow<Unit> = _checkoutSuccess.asSharedFlow()
 
-    private var currentTableId: Long = 0L
-    private var currentOrderId: Long = 0L
+    private val _allGeneralItem = MutableStateFlow<Resource<List<GenralItemsEntity>>>(Resource.Loading)
+    val allGeneralItem = _allGeneralItem.asStateFlow()
 
-    // 1. Table ka active order load karein (agar order na ho toh DB me create karein)
+    private var currentTableId: Long = 0L
+    private var activeOrderId: Long? = null
+
+    init {
+        getAllGeneralItem()
+    }
+
     fun loadTableOrder(tableId: Long) {
         currentTableId = tableId
         viewModelScope.launch {
-            val currentTimeStamp = System.currentTimeMillis()
-
-            // Database se Active Order ID mangwayein
-            currentOrderId = repository.getOrCreatePendingOrder(tableId, currentTimeStamp)
-
-            // Live Flow: Jaise hi DB me items update honge, UI auto refresh ho jayegi
-            repository.getOrderItems(currentOrderId).collect { items ->
-                _orderItems.value = items
+            val pendingOrder = repository.getPendingOrderForTable(tableId)
+            if (pendingOrder != null) {
+                activeOrderId = pendingOrder.id
+                observeCommittedItems(pendingOrder.id)
             }
         }
     }
 
-    // 2. Menu Item ko Bill me Add Karein
-    fun addItemToOrder(menuItemId: Long, itemName: String, price: Double) {
-        if (currentOrderId == 0L) return
+    private fun observeCommittedItems(orderId: Long) {
         viewModelScope.launch {
-            // Check karta hai: Agar item pehle se bill me hai toh Quantity + 1 karega,
-            // varna naya row add karega
-            repository.addOrIncrementItem(
-                orderId = currentOrderId,
-                menuItemId = menuItemId,
-                itemName = itemName,
-                price = price
+            repository.getOrderItems(orderId).collect { dbList ->
+                // Sync DB items into UI working state
+                val currentWorkingMap = _billItems.value.associateBy { it.menuItemId }
+
+                _billItems.value = dbList.map { db ->
+                    val working = currentWorkingMap[db.menuItemId]?.workingQuantity ?: db.quantity.toInt()
+                    BillItemUiState(
+                        dbId = db.id,
+                        menuItemId = db.menuItemId,
+                        itemName = db.itemName,
+                        price = db.price,
+                        printedQuantity = db.printedQuantity.toInt(),
+                        workingQuantity = working
+                    )
+                }
+            }
+        }
+    }
+
+    // Add / Increment Item
+    fun addItem(menuItemId: Long, itemName: String, price: Double) {
+        val list = _billItems.value.toMutableList()
+        val index = list.indexOfFirst { it.menuItemId == menuItemId }
+
+        if (index != -1) {
+            list[index] = list[index].copy(workingQuantity = list[index].workingQuantity + 1)
+        } else {
+            list.add(BillItemUiState(menuItemId = menuItemId, itemName = itemName, price = price, workingQuantity = 1))
+        }
+        _billItems.value = list
+    }
+
+    // Decrease Quantity (Can restore increments down to printedQuantity without triggering void)
+    fun decreaseItem(menuItemId: Long) {
+        val list = _billItems.value.toMutableList()
+        val index = list.indexOfFirst { it.menuItemId == menuItemId }
+        if (index != -1) {
+            val item = list[index]
+            val newQty = item.workingQuantity - 1
+            if (newQty <= 0 && item.dbId == null) {
+                // Draft items remove completely
+                list.removeAt(index)
+            } else {
+                list[index] = item.copy(workingQuantity = maxOf(0, newQty))
+            }
+            _billItems.value = list
+        }
+    }
+
+    // Explicit Delete Button Click
+    fun deleteItem(menuItemId: Long) {
+        val list = _billItems.value.toMutableList()
+        val index = list.indexOfFirst { it.menuItemId == menuItemId }
+        if (index != -1) {
+            val item = list[index]
+            if (item.dbId == null) {
+                list.removeAt(index)
+            } else {
+                // Set working qty to 0 (Queued for void confirmation)
+                list[index] = item.copy(workingQuantity = 0)
+            }
+            _billItems.value = list
+        }
+    }
+
+    // Revert Unsaved Edits (Called on Back or Revert Button)
+    fun revertUnsavedChanges() {
+        val list = _billItems.value.mapNotNull { item ->
+            if (item.dbId == null) null // Remove unprinted drafts
+            else item.copy(workingQuantity = item.printedQuantity) // Restore to printed baseline
+        }
+        _billItems.value = list
+    }
+
+    // Open/Close Batch Void Modal
+    fun openBatchVoidDialog() { _showBatchVoidDialog.value = true }
+    fun closeBatchVoidDialog() { _showBatchVoidDialog.value = false }
+
+    // Confirm Batch Decrement / Cancellation Reason
+// Confirm Batch Decrement / Cancellation Reason
+    fun confirmBatchVoid(reason: String) {
+        val orderId = activeOrderId ?: return
+        viewModelScope.launch {
+            val voidItems = mutableListOf<VoidLogBatchItem>()
+            val decreasedItemsMap = mutableMapOf<Long, Int>()
+
+            _billItems.value.forEach { item ->
+                if (item.pendingDecrement > 0 && item.dbId != null) {
+                    voidItems.add(
+                        VoidLogBatchItem(
+                            orderId = orderId,
+                            itemName = item.itemName,
+                            cancelledQuantity = item.pendingDecrement,
+                            unitPrice = item.price
+                        )
+                    )
+                    decreasedItemsMap[item.dbId] = item.workingQuantity
+                }
+            }
+
+            if (voidItems.isNotEmpty()) {
+                // 👈 1. Pass currentTableId to repository
+                repository.processBatchVoid(orderId, currentTableId, voidItems, reason, decreasedItemsMap)
+
+                // 👈 2. Check if all items in UI were deleted (workingQuantity == 0)
+                val remainingItemsCount = _billItems.value.count { it.workingQuantity > 0 }
+                if (remainingItemsCount == 0) {
+                    activeOrderId = null
+                    // Screen ko auto navigate back / finish kar do
+                    _checkoutSuccess.emit(Unit)
+                }
+            }
+
+            _showBatchVoidDialog.value = false
+        }
+    }
+
+    // Print & Save (Prints Increments & New Drafts together)
+// Print & Save
+    fun printAndSaveOrder(customerName: String, customerNumberString: String, isTakeAway: Boolean) {
+        viewModelScope.launch {
+            val custNum = customerNumberString.toLongOrNull() ?: 0L
+            val orderType = if (isTakeAway) "TAKE_AWAY" else "DINE_IN"
+
+            if (activeOrderId == null) {
+                activeOrderId = repository.createOrder(
+                    customerName = if (customerName.isBlank()) "Walk-in Customer" else customerName,
+                    customerNumber = custNum,
+                    tableId = if (isTakeAway) null else currentTableId,
+                    orderType = orderType,
+                    currentTimeStamp = System.currentTimeMillis()
+                )
+                observeCommittedItems(activeOrderId!!)
+            }
+
+            val orderId = activeOrderId!!
+
+            // Calculate Delta Items for Printing Slip
+            val printList = _billItems.value.mapNotNull { item ->
+                val delta = item.unprintedIncrement
+                if (delta > 0) {
+                    "[$orderType] ITEM: ${item.itemName} | QTY: +$delta | PRICE: Rs. ${item.price}"
+                } else null
+            }
+
+            if (printList.isNotEmpty()) {
+                println("====== PRINTING $orderType RECEIPT SLIP ======")
+                printList.forEach { println(it) }
+                println("==========================================")
+            }
+
+            val itemsToSave = _billItems.value.map { Triple(it.dbId, it.menuItemId, it.itemName) }
+            val quantities = _billItems.value.associate { it.menuItemId to it.workingQuantity }
+            val prices = _billItems.value.associate { it.menuItemId to it.price }
+
+            repository.commitAndPrintOrder(orderId, itemsToSave, quantities, prices)
+        }
+    }
+
+    // Checkout
+    fun checkoutAndFreeTable(isTakeAway: Boolean) {
+        val orderId = activeOrderId ?: return
+        viewModelScope.launch {
+            val total = _billItems.value.sumOf { it.price * it.workingQuantity }
+            repository.checkoutOrder(
+                orderId = orderId,
+                tableId = if (isTakeAway) null else currentTableId,
+                finalAmount = total
             )
-        }
-    }
-
-    // 3. Quantity (+1 ya -1) Change Karein
-    fun updateQuantity(item: OrderItemsEntity, delta: Int) {
-        viewModelScope.launch {
-            val newQuantity = item.quantity + delta
-            // Agar quantity 0 ho jaye toh repository isko automatically DELETE kar degi
-            repository.updateQuantity(item.id, newQuantity)
-        }
-    }
-
-    // 4. Direct Delete Karein
-    fun removeItem(item: OrderItemsEntity) {
-        viewModelScope.launch {
-            repository.removeItem(item.id)
-        }
-    }
-
-    // 5. Checkout & Table Free Karein
-    fun checkoutAndPrintBill() {
-        if (currentOrderId == 0L) return
-        viewModelScope.launch {
-            val totalAmount = _orderItems.value.sumOf { it.price * it.quantity }
-            repository.checkoutOrder(currentOrderId, currentTableId, totalAmount)
             _checkoutSuccess.emit(Unit)
         }
     }
 
-
-    fun addNewMenuItem(name: String, price: Double, category: String) {
+    private fun getAllGeneralItem() {
         viewModelScope.launch {
-            repository.addMenuItem(name, price, category)
+            repository.getAllMenuItems().collect { items ->
+                _allGeneralItem.value = items
+            }
         }
     }
 }
