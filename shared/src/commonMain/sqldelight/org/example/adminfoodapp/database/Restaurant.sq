@@ -84,6 +84,14 @@ CREATE TABLE UserEntity (
     insertMenuItem:
     INSERT OR REPLACE INTO GenralItemsEntity(itemName, price, category) VALUES (?, ?, ?);
 
+    deleteGeneralItem:
+    DELETE FROM GenralItemsEntity WHERE id=?;
+
+updateTable:
+UPDATE TablesEntity SET tableNumber = ?, capacity = ? WHERE id = ?;
+
+updateGeneralItem:
+UPDATE GenralItemsEntity SET itemName = ?, price = ? WHERE id = ?;
     -- Active Order Queries
     getPendingOrderForTable:
     SELECT * FROM OrdersEntity WHERE tableId = ? AND orderStatus = 'PENDING' LIMIT 1;

@@ -31,9 +31,10 @@ import org.example.adminfoodapp.presentation.addgeneralitem.AddGeneralItemViewMo
 import org.example.adminfoodapp.presentation.edituserscreen.EditUserViewModel
 import org.example.adminfoodapp.presentation.generalhistoryscreen.OrderHistoryViewModel
 import org.example.adminfoodapp.presentation.splashscreen.SplashViewModel
-import org.example.adminfoodapp.presentation.tablemanagementscreen.TableViewModel
+import org.example.adminfoodapp.presentation.dineinscreen.DineInViewModel
 import org.example.adminfoodapp.presentation.userprofilescreen.UserProfileViewModel
 import org.example.adminfoodapp.presentation.orderbillingscreen.OrderBillingViewModel
+import org.example.adminfoodapp.presentation.tableanditemsscreen.TableAndItemsViewModel
 import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
 import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel // Import the new ViewModel
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
@@ -79,9 +80,10 @@ val viewModelModule = module {
     viewModelOf(::SharedOrderItemViewModel)
     viewModelOf(::ShareUserItemViewModel)
     viewModelOf(::EditUserViewModel)
-    viewModelOf(::TableViewModel)
+    viewModelOf(::DineInViewModel)
     viewModelOf(::OrderBillingViewModel)
     viewModelOf(::AddGeneralItemViewModel)
     viewModelOf(::OrderHistoryViewModel)
+    viewModelOf(::TableAndItemsViewModel)
 
 }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -127,7 +128,7 @@ fun TopAppBarSection(navController: NavController) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            modifier = Modifier.size(45.dp).clickable(
+            modifier = Modifier.size(45.dp).clip(RoundedCornerShape(12.dp)).clickable(
                 onClick = { navController.navigate(NavRoutes.UserProfileScreen) }),
             shape = RoundedCornerShape(12.dp),
             color = Color.White,
@@ -161,7 +162,7 @@ fun StatsSection(
     ) {
         // Earning Card
         Card(
-            modifier = Modifier.weight(0.45f).fillMaxHeight().clickable(onClick = {
+            modifier = Modifier.weight(0.45f).fillMaxHeight().clip(RoundedCornerShape(24.dp)).clickable(onClick = {
                 onTotalEarningClick()
             }),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF6C5DD3)),
@@ -259,7 +260,7 @@ fun QuickActionsGrid(navController: NavController) {
             "Online\nMenu Item", Color(0xFFE8F5E9), Color(0xFF2E7D32), Res.drawable.pluse_round, NavRoutes.AllItemScreen
         ),
         QuickActionData(
-            "General\nMenu Item", Color(0xFFF3E5F5), Color(0xFF6A1B9A), Res.drawable.eye, NavRoutes.AddGeneralItemScreen
+            "Tables\nGeneral Item", Color(0xFFF3E5F5), Color(0xFF6A1B9A), Res.drawable.eye, NavRoutes.TableAndItemsScreen
         ),
         QuickActionData(
             "Admin\nProfile", Color(0xFFFAFAFA), Color(0xFF424242), Res.drawable.user, NavRoutes.AdminProfileScreen
@@ -294,7 +295,7 @@ fun QuickActionsGrid(navController: NavController) {
 @Composable
 fun QuickActionCard(navController: NavController, data: QuickActionData, modifier: Modifier) {
     Card(
-        modifier = modifier.height(130.dp).clickable {
+        modifier = modifier.height(130.dp).clip(RoundedCornerShape(20.dp)).clickable {
             navController.navigate(data.navRoutes)
         },
         colors = CardDefaults.cardColors(containerColor = Color.White),

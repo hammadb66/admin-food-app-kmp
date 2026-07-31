@@ -96,6 +96,7 @@ class RestaurantRepository(
     fun addTable(tableNumber: String, capacity: Long) = dbQueries.insertTable(tableNumber, capacity)
     fun updateTableStatus(tableId: Long, status: String) = dbQueries.updateTableStatus(status, tableId)
     fun deleteTable(tableId: Long) = dbQueries.deleteTable(tableId)
+    fun deleteGeneralItem(tableId: Long) = dbQueries.deleteGeneralItem(tableId)
 
     // Check if Active Order exists
     fun getPendingOrderForTable(tableId: Long): OrdersEntity? {
@@ -281,6 +282,14 @@ class RestaurantRepository(
         }
     }
 
+    fun updateTable(id: Long, tableId: String, capacity: Long) {
+        dbQueries.updateTable(tableId, capacity, id)
+    }
+
+    fun updateGeneralItem(id: Long, name: String, price: Double) {
+        dbQueries.updateGeneralItem(name, price, id)
+
+    }
 
     // Date & Search Query ke mutabiq Orders History
     fun getOrdersHistory(startOfDay: Long, endOfDay: Long, searchQuery: String): Flow<List<OrdersEntity>> {
@@ -298,5 +307,6 @@ class RestaurantRepository(
             dbQueries.getOrderItemsForOrder(orderId).executeAsList()
         }
     }
+
 
 }

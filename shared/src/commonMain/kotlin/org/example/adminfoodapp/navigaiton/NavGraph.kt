@@ -22,7 +22,8 @@ import org.example.adminfoodapp.presentation.orderdetailsscreen.OrderDetailsScre
 import org.example.adminfoodapp.presentation.outofdeliveryscreen.OutOfDeliveryScreen
 import org.example.adminfoodapp.presentation.pendingorderscreen.PendingOrderScreen
 import org.example.adminfoodapp.presentation.splashscreen.SplashScreen
-import org.example.adminfoodapp.presentation.tablemanagementscreen.TableManagementScreen
+import org.example.adminfoodapp.presentation.tableanditemsscreen.TableAndItemsScreen
+import org.example.adminfoodapp.presentation.dineinscreen.TableManagementScreen
 import org.example.adminfoodapp.presentation.userprofilescreen.UserProfileScreen
 import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
 import org.example.adminfoodapp.utils.ToastManager
@@ -94,6 +95,9 @@ fun NavGraph() {
             }
             composable<NavRoutes.OrderHistoryScreen> {
                 OrderHistoryScreen(navController = navController)
+            }
+            composable<NavRoutes.TableAndItemsScreen> {
+                TableAndItemsScreen(navController = navController)
             }
 
         }

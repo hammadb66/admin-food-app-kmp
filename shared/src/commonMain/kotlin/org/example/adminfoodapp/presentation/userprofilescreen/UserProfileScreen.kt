@@ -46,6 +46,8 @@ fun UserProfileScreen(navController: NavHostController) {
     val currentKey = sessionManager.getCurrentUserKey()
     var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var admin by remember { mutableStateOf(false) }
+    var userAccess by remember { mutableStateOf(false) }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var showReAuthDialog by remember { mutableStateOf(false) }
     var reAuthPassword by remember { mutableStateOf("") }
@@ -62,6 +64,8 @@ fun UserProfileScreen(navController: NavHostController) {
                 data.name?.let { name = it }
                 data.password?.let { password = it }
                 data.password?.let { currentPassword = it }
+                data.admin?.let{admin=it}
+                data.userAccess?.let { userAccess = it }
 
 
             }
@@ -74,16 +78,18 @@ fun UserProfileScreen(navController: NavHostController) {
         }
     }
 
-    LaunchedEffect(updateState){
-        when(val state = updateState){
-            is Resource.Success ->{
+    LaunchedEffect(updateState) {
+        when (val state = updateState) {
+            is Resource.Success -> {
                 viewModel.resetValue()
                 navController.navigateUp()
             }
-            is Resource.Error->{
+
+            is Resource.Error -> {
                 errorMessage = state.message
             }
-            else->{}
+
+            else -> {}
         }
     }
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
@@ -117,8 +123,8 @@ fun UserProfileScreen(navController: NavHostController) {
                 fontSize = 18.sp,
                 fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
             )
-            errorMessage?.let{
-                Text(text= errorMessage!!, color = Color.Red)
+            errorMessage?.let {
+                Text(text = errorMessage!!, color = Color.Red)
             }
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -241,7 +247,7 @@ fun UserProfileScreen(navController: NavHostController) {
                     if (currentPassword == reAuthPassword) {
                         viewModel.updateUser(
                             UserModel(
-                                key = currentKey, name = name, password = password, admin = null, userAccess = null
+                                key = currentKey, name = name, password = password, admin = admin, userAccess = userAccess
                             )
                         )
                         errorPasswordMismatchException = null
