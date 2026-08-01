@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
@@ -24,6 +25,7 @@ import androidx.navigation.NavHostController
 import org.example.adminfoodapp.database.model.OrderDetails
 import org.example.adminfoodapp.navigaiton.NavRoutes
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
+import org.example.adminfoodapp.utils.PrintMode
 import org.example.adminfoodapp.utils.ReceiptPrinter
 import org.example.adminfoodapp.utils.Resource
 import org.jetbrains.compose.resources.Font
@@ -91,10 +93,12 @@ fun PendingOrderScreen(navController: NavHostController, sharedOrderItemViewMode
                                     viewModel.orderDispatch(order)
 
                                     //want to print recipe here
-                                    ReceiptPrinter.printReceipt(order)
+                                    ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
                                 }, onAccept = {
                                     // Logic for Accept
                                     viewModel.orderAccepted(order)
+                                    // Yahan print lagao (Kitchen ke liye)
+                                    ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
                                 }, onCancel = {
                                     // Logic for Cancel
                                     viewModel.cancelOrder(order)
@@ -126,7 +130,7 @@ fun PendingOrderItemCard(
     onCancelConfirm: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).clickable { onClick() },
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
@@ -205,6 +209,16 @@ fun PendingOrderItemCard(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5252))
                     ) {
                         Text("Order Cancel", fontSize = 12.sp, color = Color.White)
+                    }
+                    // Actions Column ke andar ye add karo
+                    Button(
+                        onClick = { ReceiptPrinter.printReceipt(order, PrintMode.THERMAL) },
+                        modifier = Modifier.fillMaxWidth().height(35.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)) // Blue color for Print
+                    ) {
+                        Text("Reprint", fontSize = 12.sp, color = Color.White)
                     }
                 }
             }

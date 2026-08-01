@@ -7,7 +7,10 @@ import kotlinx.coroutines.launch
 import org.example.adminfoodapp.database.OrderItemsEntity
 import org.example.adminfoodapp.database.OrdersEntity
 import org.example.adminfoodapp.database.VoidLogsEntity
+import org.example.adminfoodapp.database.model.OrderDetails
 import org.example.adminfoodapp.database.repository.RestaurantRepository
+import org.example.adminfoodapp.utils.PrintMode
+import org.example.adminfoodapp.utils.ReceiptPrinter
 import java.util.Calendar
 
 data class HistoryUiState(
@@ -78,35 +81,38 @@ class OrderHistoryViewModel(
 
     // 2. Single Order Bill Print
     fun printSingleOrder(order: OrdersEntity, items: List<OrderItemsEntity>) {
-        println("=== SINGLE ORDER RECEIPT ===")
-        println("Order ID: #${order.id} | Staff: ${order.createdByName}")
-        println("Customer: ${order.customerName}")
-        items.forEach { println("${it.itemName} x ${it.quantity} = Rs. ${it.price * it.quantity}") }
-        println("Total: Rs. ${order.totalAmount}")
+        val orderDetails = OrderDetails(
+            userName = order.customerName,
+            phoneNumber = order.customerNumber.toString(),
+            address = "N/A",
+            foodName = items.map { it.itemName },
+            foodQuantity = items.map { it.quantity.toInt() },
+            foodPrice = items.map { it.price.toString() },
+            totalPrice = order.totalAmount.toString()
+        )
+
+        ReceiptPrinter.printReceipt(orderDetails, PrintMode.A4)
     }
 
-    // 3. TOP GLOBAL PRINT (Bulk Summary Print)
     fun printBulkReport() {
-        val currentState = _uiState.value
-        if (currentState.selectedTab == 0) {
-            // ALL ORDERS DAILY REPORT
-            println("====== ALL ORDERS DAILY REPORT ======")
-            println("Total Orders Count: ${currentState.orders.size}")
-            var grandTotal = 0.0
-            currentState.orders.forEach { order ->
-                grandTotal += order.totalAmount
-                println("#${order.id} | ${order.orderType} | Rs.${order.totalAmount} | Taken By: ${order.createdByName}")
+        val currentOrders = _uiState.value.orders
+
+        if (currentOrders.isNotEmpty()) {
+            // Yahan hum Database model ko Printer model mein 'Map' kar rahe hain
+            val printableOrders = currentOrders.map { order ->
+                OrderDetails(
+                    userName = order.customerName,
+                    totalPrice = order.totalAmount.toString(),
+                    phoneNumber = "", // Bulk report mein ye zaruri nahi
+                    address = "",
+                    foodName = emptyList(),
+                    foodQuantity = emptyList(),
+                    foodPrice = emptyList()
+                )
             }
-            println("GRAND TOTAL SALES: Rs. $grandTotal")
-            println("====================================")
-        } else {
-            // ALL VOID LOGS DAILY REPORT
-            println("====== ALL VOID AUDIT REPORT ======")
-            println("Total Voided Items: ${currentState.voidLogs.size}")
-            currentState.voidLogs.forEach { voidLog ->
-                println("Item: ${voidLog.itemName} | Qty: ${voidLog.cancelledQuantity} | Reason: ${voidLog.reason} | Voided By: ${voidLog.voidedByName}")
-            }
-            println("===================================")
+
+            // Ab hum Printer ko wohi format bhej rahe hain jo wo maang raha hai
+            ReceiptPrinter.printAllOrders(printableOrders)
         }
     }
 

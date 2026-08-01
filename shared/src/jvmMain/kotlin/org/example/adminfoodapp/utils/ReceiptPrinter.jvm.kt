@@ -7,18 +7,52 @@ import java.awt.Graphics2D
 import java.awt.print.*
 
 actual object ReceiptPrinter {
-    actual fun printReceipt(order: OrderDetails) {
+
+    // 1. Single Order Print (Thermal ya A4)
+    actual fun printReceipt(order: OrderDetails, mode: PrintMode) {
         val printerJob = PrinterJob.getPrinterJob()
         val pageFormat = printerJob.defaultPage()
         val paper = pageFormat.paper
 
-        val width = 226.0
-        val height = 600.0
-        paper.setSize(width, height)
-        paper.setImageableArea(0.0, 0.0, width, height)
+        when (mode) {
+            PrintMode.THERMAL -> {
+                paper.setSize(226.0, 800.0)
+                paper.setImageableArea(0.0, 0.0, 226.0, 800.0)
+            }
+            PrintMode.A4 -> {
+                paper.setSize(595.0, 842.0)
+                paper.setImageableArea(20.0, 20.0, 555.0, 802.0)
+            }
+        }
         pageFormat.paper = paper
 
-        printerJob.setPrintable(DesktopReceiptPrintable(order), pageFormat)
+        val printable = if (mode == PrintMode.THERMAL) ThermalReceiptPrintable(order)
+        else DetailedReportPrintable(order)
+
+        printerJob.setPrintable(printable, pageFormat)
+
+        try {
+            if (printerJob.printDialog()) {
+                printerJob.print()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // 2. NAYA: Batch Order Print (Poori List ka Report)
+   actual fun printAllOrders(orders: List<OrderDetails>) {
+        val printerJob = PrinterJob.getPrinterJob()
+        val pageFormat = printerJob.defaultPage()
+        val paper = pageFormat.paper
+
+        // A4 Settings
+        paper.setSize(595.0, 842.0)
+        paper.setImageableArea(20.0, 20.0, 555.0, 802.0)
+        pageFormat.paper = paper
+
+        // List pass kar rahe hain
+        printerJob.setPrintable(AllOrdersReportPrintable(orders), pageFormat)
 
         try {
             if (printerJob.printDialog()) {
@@ -30,74 +64,69 @@ actual object ReceiptPrinter {
     }
 }
 
-class DesktopReceiptPrintable(private val order: OrderDetails) : Printable {
+// Thermal Receipt Design
+class ThermalReceiptPrintable(private val order: OrderDetails) : Printable {
     override fun print(graphics: Graphics?, pageFormat: PageFormat?, pageIndex: Int): Int {
         if (pageIndex > 0) return Printable.NO_SUCH_PAGE
-
         val g2d = graphics as Graphics2D
         g2d.translate(pageFormat?.imageableX ?: 0.0, pageFormat?.imageableY ?: 0.0)
 
-        var y = 20
-        val fontTitle = Font("Monospaced", Font.BOLD, 14)
-        val fontBold = Font("Monospaced", Font.BOLD, 9)
-        val fontNormal = Font("Monospaced", Font.PLAIN, 8)
+        g2d.font = Font("Monospaced", Font.BOLD, 12)
+        g2d.drawString("X CAFE RECEIPT", 20, 20)
+        g2d.drawString("Customer: ${order.userName}", 5, 40)
+        g2d.drawString("Total: Rs ${order.totalPrice}", 5, 60)
 
-        // Header
-        g2d.font = fontTitle
-        g2d.drawString("X CAFE", 60, y)
-        y += 15
+        return Printable.PAGE_EXISTS
+    }
+}
 
-        g2d.font = fontNormal
-        g2d.drawString("---------------------------------", 5, y)
-        y += 10
-        g2d.drawString("Customer: ${order.userName ?: "N/A"}", 5, y)
-        y += 10
-        g2d.drawString("Phone: ${order.phoneNumber ?: "N/A"}", 5, y)
-        y += 10
-        g2d.drawString("Address: ${order.address ?: "N/A"}", 5, y)
-        y += 10
-        g2d.drawString("---------------------------------", 5, y)
-        y += 12
+// Single Detailed A4 Design
+class DetailedReportPrintable(private val order: OrderDetails) : Printable {
+    override fun print(graphics: Graphics?, pageFormat: PageFormat?, pageIndex: Int): Int {
+        if (pageIndex > 0) return Printable.NO_SUCH_PAGE
+        val g2d = graphics as Graphics2D
+        g2d.translate(pageFormat?.imageableX ?: 0.0, pageFormat?.imageableY ?: 0.0)
 
-        // Table Header
-        g2d.font = fontBold
-        g2d.drawString("Item", 5, y)
-        g2d.drawString("Qty", 125, y)
-        g2d.drawString("Price", 165, y)
-        y += 10
-        g2d.font = fontNormal
-        g2d.drawString("---------------------------------", 5, y)
-        y += 10
+        g2d.font = Font("Serif", Font.BOLD, 24)
+        g2d.drawString("ORDER INVOICE", 100, 50)
 
-        // Items
-        val items = order.foodName ?: emptyList()
-        val quantities = order.foodQuantity ?: emptyList()
-        val prices = order.foodPrice ?: emptyList()
+        g2d.font = Font("Serif", Font.PLAIN, 14)
+        g2d.drawString("Customer: ${order.userName}", 50, 90)
+        g2d.drawString("Total: Rs ${order.totalPrice}", 50, 110)
 
-        for (i in items.indices) {
-            val name = items.getOrNull(i) ?: ""
-            val qty = quantities.getOrNull(i) ?: 1
-            val price = prices.getOrNull(i) ?: "0"
+        return Printable.PAGE_EXISTS
+    }
+}
 
-            val displayName = if (name.length > 18) name.substring(0, 16) + ".." else name
+// BATCH REPORT DESIGN (Poori List ek saath)
+class AllOrdersReportPrintable(private val orders: List<OrderDetails>) : Printable {
+    override fun print(graphics: Graphics?, pageFormat: PageFormat?, pageIndex: Int): Int {
+        if (pageIndex > 0) return Printable.NO_SUCH_PAGE
+        val g2d = graphics as Graphics2D
+        g2d.translate(pageFormat?.imageableX ?: 0.0, pageFormat?.imageableY ?: 0.0)
 
-            g2d.drawString(displayName, 5, y)
-            g2d.drawString("x$qty", 130, y)
-            g2d.drawString("Rs $price", 165, y)
-            y += 12
+        g2d.font = Font("Serif", Font.BOLD, 20)
+        g2d.drawString("DELIVERY REPORT - ALL PENDING ORDERS", 50, 50)
+
+        g2d.font = Font("Serif", Font.BOLD, 12)
+        g2d.drawLine(50, 70, 500, 70)
+        g2d.drawString("Customer Name", 60, 85)
+        g2d.drawString("Total Price", 400, 85)
+        g2d.drawLine(50, 95, 500, 95)
+
+        var y = 115
+        g2d.font = Font("Serif", Font.PLAIN, 12)
+
+        for (order in orders) {
+            g2d.drawString(order.userName.toString(), 60, y)
+            g2d.drawString("Rs ${order.totalPrice}", 400, y)
+            y += 20
+
+            // Agar page khatam hone lage to yahan break lag sakta hai
+            if (y > 750) break
         }
 
-        y += 5
-        g2d.drawString("---------------------------------", 5, y)
-        y += 12
-        g2d.font = fontBold
-        g2d.drawString("TOTAL AMOUNT:", 5, y)
-        g2d.drawString("Rs ${order.totalPrice ?: "0"}", 145, y)
-        y += 15
-
-        g2d.font = fontNormal
-        g2d.drawString("--- Thank You For Ordering! ---", 15, y)
-
+        g2d.drawLine(50, y, 500, y)
         return Printable.PAGE_EXISTS
     }
 }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Print
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
+import org.example.adminfoodapp.utils.PrintMode
+import org.example.adminfoodapp.utils.ReceiptPrinter
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 
@@ -53,6 +57,16 @@ fun OrderDetailsScreen(navController: NavHostController, sharedOrderItemViewMode
                         fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 34.sp, color = Color.Black
                     )
                 )
+                // Yahan Print ka button laga diya!
+                IconButton(
+                    onClick = {
+                        orderItem?.let { order ->
+                            ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.Print, contentDescription = "Print Order", tint = Color.Black)
+                }
             }
 
             // Scrollable Content
