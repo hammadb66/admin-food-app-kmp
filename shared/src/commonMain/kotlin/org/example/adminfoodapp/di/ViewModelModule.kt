@@ -14,6 +14,7 @@ import org.example.adminfoodapp.domain.usecase.CancelConfirmOrderUseCase
 import org.example.adminfoodapp.domain.usecase.CancelOrderUseCase
 import org.example.adminfoodapp.domain.usecase.CurrentUserUseCase
 import org.example.adminfoodapp.domain.usecase.DeleteUserUseCase
+import org.example.adminfoodapp.domain.usecase.GetCategoriesUseCase
 import org.example.adminfoodapp.domain.usecase.GetCompleteOrderUseCase
 import org.example.adminfoodapp.domain.usecase.GetMenuItemsUseCase
 import org.example.adminfoodapp.domain.usecase.GetPendingOrderUseCase
@@ -62,6 +63,7 @@ val viewModelModule = module {
     factoryOf(::DeleteUserUseCase)
     factoryOf(::UpdateUserAccessUseCase)
     factoryOf(::SignUpUseCase)
+    factoryOf(::GetCategoriesUseCase)
 
 
 

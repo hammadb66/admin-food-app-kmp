@@ -4,6 +4,8 @@ import TextColor
 import adminfoodapp.shared.generated.resources.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -25,7 +27,7 @@ import kotlinx.coroutines.launch
 import org.example.adminfoodapp.database.model.AllMenu
 import org.example.adminfoodapp.presentation.edititemscreen.AddItemTextField
 import org.example.adminfoodapp.utils.UploadState
-import org.example.adminfoodapp.utils.rememberBitmapFromBytes // 👈 Import Added
+import org.example.adminfoodapp.utils.rememberBitmapFromBytes
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -33,38 +35,52 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun AddItemScreen(
     navController: NavHostController,
-
 ) {
     val viewModel: AddItemViewModel = koinViewModel()
+
+    // ViewModel se categories collect karna
+    val categories by viewModel.categories.collectAsState()
+
     var foodName by remember { mutableStateOf("") }
     var foodPrice by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var ingredients by remember { mutableStateOf("") }
+
+    // Naye states: Category aur IsPopular ke liye
+    var selectedCategory by remember { mutableStateOf("") }
+    var customCategoryInput by remember { mutableStateOf("") }
+    var isPopular by remember { mutableStateOf(false) }
+
     val scope = rememberCoroutineScope()
     var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val uploadState by viewModel.uploadState.collectAsState()
     val scrollState = rememberScrollState()
+
     val goldAccent = Color(0xFFD4AF37)
     val darkGray = Color(0xFF333333)
+
     val singleImagePicker = rememberFilePickerLauncher(
-        type = PickerType.Image,
-        mode = PickerMode.Single
+        type = PickerType.Image, mode = PickerMode.Single
     ) { file ->
         file?.let {
             scope.launch {
                 selectedImageBytes = it.readBytes()
-            }        }
+            }
+        }
     }
+
     LaunchedEffect(uploadState) {
         when (uploadState) {
             is UploadState.Success -> {
                 viewModel.resetState()
                 navController.navigateUp()
             }
+
             is UploadState.Error -> {
                 errorMessage = (uploadState as UploadState.Error).message
             }
+
             else -> Unit
         }
     }
@@ -157,13 +173,11 @@ fun AddItemScreen(
 
                     errorMessage?.let { msg ->
                         Text(
-                            text = msg,
-                            color = Color.Red,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(bottom = 12.dp)
+                            text = msg, color = Color.Red, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp)
                         )
                     }
 
+                    // 1. ITEM NAME
                     AddItemTextField(
                         value = foodName,
                         onValueChange = { foodName = it },
@@ -173,6 +187,7 @@ fun AddItemScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // 2. PRICE
                     AddItemTextField(
                         value = foodPrice,
                         onValueChange = { foodPrice = it },
@@ -181,17 +196,91 @@ fun AddItemScreen(
                         keyboardType = KeyboardType.Number
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // 3. CATEGORY DROPDOWN / LIST SECTION
+                    Text(
+                        text = "Select Category from List",
+                        color = darkGray,
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(categories) { category ->
+                            val isSelected = selectedCategory == category
+                            Surface(
+                                modifier = Modifier.clickable {
+                                    selectedCategory = category
+                                    customCategoryInput = "" // List se select ho toh custom clear kardein
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) goldAccent else Color(0xFFF5F5F5),
+                                border = BorderStroke(1.dp, if (isSelected) goldAccent else Color.LightGray)
+                            ) {
+                                Text(
+                                    text = category,
+                                    color = if (isSelected) Color.White else darkGray,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 4. OR ADD NEW CATEGORY TEXTFIELD
+                    OutlinedTextField(
+                        value = customCategoryInput,
+                        onValueChange = {
+                            customCategoryInput = it
+                            if (it.isNotBlank()) selectedCategory =
+                                it // Agar user yahan likhe toh selected category yehi ban jaye
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Or Type New Category") },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = goldAccent, focusedLabelColor = goldAccent
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // 5. IS POPULAR SWITCH SECTION
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Is Popular Item?",
+                            color = darkGray,
+                            fontSize = 18.sp,
+                            fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
+                        )
+                        Switch(
+                            checked = isPopular,
+                            onCheckedChange = { isPopular = it },
+                            colors = SwitchDefaults.colors(checkedThumbColor = goldAccent)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
                     HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    // 6. DESCRIPTION
                     Text(
                         text = "Description",
                         color = darkGray,
                         fontSize = 18.sp,
                         fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
                     )
-
                     Spacer(modifier = Modifier.height(10.dp))
 
                     OutlinedTextField(
@@ -207,13 +296,13 @@ fun AddItemScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // 7. INGREDIENTS
                     Text(
                         text = "Ingredients",
                         color = darkGray,
                         fontSize = 18.sp,
                         fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
                     )
-
                     Spacer(modifier = Modifier.height(10.dp))
 
                     OutlinedTextField(
@@ -229,10 +318,11 @@ fun AddItemScreen(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
+                    // SUBMIT BUTTON
                     Button(
                         onClick = {
-                            if (foodName.isBlank() || foodPrice.isBlank() || description.isBlank() || ingredients.isBlank()) {
-                                errorMessage = "Please fill all fields"
+                            if (foodName.isBlank() || foodPrice.isBlank() || description.isBlank() || ingredients.isBlank() || selectedCategory.isBlank()) {
+                                errorMessage = "Please fill all fields and select/enter a category"
                                 return@Button
                             }
                             if (selectedImageBytes == null) {
@@ -247,7 +337,10 @@ fun AddItemScreen(
                                 foodPrice = foodPrice.trim(),
                                 foodDescription = description.trim(),
                                 foodIngredient = ingredients.trim(),
-                                foodImage = ""
+                                foodImage = "",
+                                category = selectedCategory.trim(),
+                                isPopular = isPopular,
+                                orderCount = 0
                             )
                             viewModel.uploadItem(item, selectedImageBytes!!)
                         },

@@ -3,12 +3,16 @@ package org.example.adminfoodapp.database.repository
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import org.example.adminfoodapp.database.*
+import org.example.adminfoodapp.database.model.QuickPendingOrder
+import org.example.adminfoodapp.utils.MainActivityUiState
 import org.example.adminfoodapp.utils.Resource
 import org.example.adminfoodapp.utils.SessionManager
+import java.util.Calendar
 
 
 // Helper model for Batch Void Logging
@@ -305,6 +309,98 @@ class RestaurantRepository(
     suspend fun getOrderItemsForReprint(orderId: Long): List<OrderItemsEntity> {
         return withContext(Dispatchers.IO) {
             dbQueries.getOrderItemsForOrder(orderId).executeAsList()
+        }
+    }
+    // 1. Dashboard Sales & Revenue Analytics Real DB Query
+
+
+    // Repository Methods Inside RestaurantRepositoryImpl Class
+    fun getDashboardAnalytics(): Flow<MainActivityUiState> = flow {
+        val calendar = java.util.Calendar.getInstance()
+
+        // Today Start & End Timestamps
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        val startOfToday = calendar.timeInMillis
+
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        calendar.set(java.util.Calendar.MINUTE, 59)
+        calendar.set(java.util.Calendar.SECOND, 59)
+        val endOfToday = calendar.timeInMillis
+
+        // Queries to SQLDelight DB
+        val todayOrders = dbQueries.getOrdersHistory(startOfToday, endOfToday, "").executeAsList()
+        val activeTables = dbQueries.getAllTables().executeAsList().filter { it.status == "OCCUPIED" }
+
+        // Calculations
+        val todayTotalEarnings = todayOrders.sumOf { it.totalAmount }
+        val completedOrdersToday = todayOrders.count { it.orderStatus == "COMPLETED" }
+        val pendingOrdersToday = todayOrders.count { it.orderStatus == "PENDING" }
+
+        emit(
+            MainActivityUiState(
+                totalEarnings = todayTotalEarnings.toInt(),
+                completeOrdersCount = completedOrdersToday,
+                pendingOrdersCount = activeTables.size + pendingOrdersToday,
+                isLoading = false,
+                errorMessage = null
+            )
+        )
+    }
+
+    fun getRealPendingOrders(): Flow<List<QuickPendingOrder>> = flow {
+        // JADOO: While loop har 2 second baad automatically UI ko refresh karega
+        while (true) {
+            val pendingList = mutableListOf<QuickPendingOrder>()
+
+            // 1. Fetch Active Dine-In Tables Orders
+            val allActiveTables = dbQueries.getAllTables().executeAsList().filter { it.status == "OCCUPIED" }
+            allActiveTables.forEach { table ->
+                val pendingOrder = dbQueries.getPendingOrderForTable(table.id).executeAsOneOrNull()
+                if (pendingOrder != null) {
+                    val items: List<OrderItemsEntity> = dbQueries.getOrderItemsForOrder(pendingOrder.id).executeAsList()
+                    val totalAmt = items.sumOf { it.quantity * it.price }
+
+                    pendingList.add(
+                        QuickPendingOrder(
+                            id = pendingOrder.id.toString(),
+                            orderType = pendingOrder.orderType,
+                            titleOrTable = "Table #${table.tableNumber}",
+                            itemCount = items.sumOf { it.quantity.toInt() },
+                            totalAmount = totalAmt,
+                            timeAgo = "Active Now",
+                            targetTab = "DASHBOARD_HOME"
+                        )
+                    )
+                }
+            }
+
+            // 2. Direct SQLDelight Query for Pending Takeaways (Clean & Fast!)
+            val takeawayOrders = dbQueries.getPendingTakeawayOrNullOrders().executeAsList()
+
+            takeawayOrders.forEach { order ->
+                val items: List<OrderItemsEntity> = dbQueries.getOrderItemsForOrder(order.id).executeAsList()
+                val totalAmt = items.sumOf { it.quantity * it.price }
+
+                pendingList.add(
+                    QuickPendingOrder(
+                        id = order.id.toString(),
+                        orderType = "TAKEAWAY",
+                        titleOrTable = "Takeaway - ${order.customerName.ifBlank { "Customer" }}",
+                        itemCount = items.sumOf { it.quantity.toInt() },
+                        totalAmount = totalAmt,
+                        timeAgo = "Active Now",
+                        targetTab = "DASHBOARD_HOME"
+                    )
+                )
+            }
+
+            // Fresh data Dashboard UI ko emit karein
+            emit(pendingList)
+
+            // 2 Second wait karein phir dobara live check karein
+            delay(2000L)
         }
     }
 

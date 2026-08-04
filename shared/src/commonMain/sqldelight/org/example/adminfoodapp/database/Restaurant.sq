@@ -81,6 +81,11 @@ CREATE TABLE UserEntity (
     getAllMenuItems:
     SELECT * FROM GenralItemsEntity;
 
+getPendingTakeawayOrNullOrders:
+SELECT * FROM OrdersEntity
+WHERE orderStatus = 'PENDING' AND (tableId IS NULL OR tableId = 0);
+
+
     insertMenuItem:
     INSERT OR REPLACE INTO GenralItemsEntity(itemName, price, category) VALUES (?, ?, ?);
 

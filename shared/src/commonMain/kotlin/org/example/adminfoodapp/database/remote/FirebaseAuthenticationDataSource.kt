@@ -13,6 +13,7 @@ import org.example.adminfoodapp.database.RestaurantDatabase
 import org.example.adminfoodapp.database.RestaurantDatabase.Companion.invoke
 import org.example.adminfoodapp.database.RestaurantQueries
 import org.example.adminfoodapp.database.model.UserModel
+import org.example.adminfoodapp.utils.LoginState
 import org.example.adminfoodapp.utils.Resource
 import org.example.adminfoodapp.utils.SessionManager
 
@@ -81,14 +82,14 @@ class FirebaseAuthenticationDataSource(driverFactory: DriverFactory,
     }.flowOn(Dispatchers.IO)
 
     // 2. LOGIN (Verify Credentials & Save Active Operator Session)
-    fun login(username: String, password: String): Flow<Resource<UserModel>> = flow {
-        emit(Resource.Loading)
+    fun login(username: String, password: String): Flow<LoginState<UserModel>> = flow {
+        emit(LoginState.Loading)
         try {
             val normalizedName = username.trim()
             val userEntity = dbQueries.getUserByName(normalizedName).executeAsOneOrNull()
 
             if (userEntity == null || userEntity.password != password) {
-                emit(Resource.Error("Invalid username or password"))
+                emit(LoginState.Error("Invalid username or password"))
                 return@flow
             }
 
@@ -107,9 +108,9 @@ class FirebaseAuthenticationDataSource(driverFactory: DriverFactory,
                 userName = matchedUser.name ?: "Admin"
             )
 
-            emit(Resource.Success(matchedUser))
+            emit(LoginState.Success(matchedUser))
         } catch (e: Exception) {
-            emit(Resource.Error(e.message ?: "Login failed"))
+            emit(LoginState.Error(e.message ?: "Login failed"))
         }
     }.flowOn(Dispatchers.IO)
 

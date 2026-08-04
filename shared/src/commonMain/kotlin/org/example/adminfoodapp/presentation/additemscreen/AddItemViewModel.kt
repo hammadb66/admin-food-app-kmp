@@ -8,13 +8,43 @@ import org.example.adminfoodapp.utils.UploadState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.domain.usecase.GetCategoriesUseCase
+import org.example.adminfoodapp.utils.Resource
 
 class AddItemViewModel(
-    private val addMenuUseCase: AddMenuUseCase
+    private val addMenuUseCase: AddMenuUseCase,
+    private val getCategoriesUseCase: GetCategoriesUseCase
 ) : ViewModel() {
 
     private val _uploadState = MutableStateFlow<UploadState>(UploadState.Idle)
     val uploadState: StateFlow<UploadState> = _uploadState
+    private val _categories = MutableStateFlow<List<String>>(emptyList())
+    val categories: StateFlow<List<String>> = _categories
+
+
+    init {
+        fetchCategories()
+    }
+
+
+    fun fetchCategories() {
+
+        viewModelScope.launch {
+            getCategoriesUseCase.invoke().collect {state->
+                when(state){
+                    is Resource.Loading -> {
+                    }
+                    is Resource.Success -> {
+                        _categories.value = state.data
+                    }
+                    is Resource.Error -> {}
+                }
+
+            }
+        }
+
+
+    }
 
     fun uploadItem(item: AllMenu, imageBytes: ByteArray) {
         viewModelScope.launch {

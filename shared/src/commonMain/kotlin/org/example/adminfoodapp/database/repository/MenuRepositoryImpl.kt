@@ -37,4 +37,5 @@ class MenuRepositoryImpl(
     override fun cancelOrder(orderDetails: OrderDetails) = dataSource.cancelOrder(orderDetails)
 
     override fun cancelConfirm(orderDetails: OrderDetails) = dataSource.cancelConfirm(orderDetails)
+    override fun getCategories() = dataSource.getCategories()
 }

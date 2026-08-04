@@ -9,6 +9,7 @@ import org.example.adminfoodapp.utils.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.utils.LoginState
 import org.example.adminfoodapp.utils.Utils.ISADMIN
 import org.example.adminfoodapp.utils.Utils.ISUSERACCESS
 
@@ -16,14 +17,13 @@ class LoginViewModel(
     private val loginUseCase: LoginUseCase, private val setting: Settings
 ) : ViewModel() {
 
-    private val _stateLogin = MutableStateFlow<Resource<UserModel>>(Resource.Loading)
-    val stateLogin: StateFlow<Resource<UserModel>> = _stateLogin
+    private val _stateLogin = MutableStateFlow<LoginState<UserModel>>(LoginState.Idle)
+    val stateLogin: StateFlow<LoginState<UserModel>> = _stateLogin
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
-
             loginUseCase.invoke(email, password).collect { result ->
-                if (result is Resource.Success) {
+                if (result is LoginState.Success) {
                     saveUserData(result.data)
                 }
                 _stateLogin.value = result

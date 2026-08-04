@@ -17,4 +17,8 @@ interface MenuRepository {
     fun menuItemDelete(id: String): Flow<Resource<Unit>>
     fun cancelOrder(orderDetails: OrderDetails): Flow<Resource<Unit>>
     fun cancelConfirm(orderDetails: OrderDetails): Flow<Resource<Unit>>
+    fun getCategories(): Flow<Resource<List<String>>>
+
+
+
 }

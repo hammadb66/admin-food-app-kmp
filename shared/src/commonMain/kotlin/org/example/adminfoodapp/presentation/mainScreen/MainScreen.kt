@@ -1,289 +1,222 @@
 package org.example.adminfoodapp.presentation.mainScreen
 
-import TextColor
 import adminfoodapp.shared.generated.resources.*
-import androidx.compose.foundation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.database.model.OrderDetails
+import org.example.adminfoodapp.database.model.QuickPendingOrder
 import org.example.adminfoodapp.navigaiton.NavRoutes
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.Font
+import org.example.adminfoodapp.presentation.additemscreen.AddItemScreen
+import org.example.adminfoodapp.presentation.adminprofilescreen.AdminProfileScreen
+import org.example.adminfoodapp.presentation.allitemscreen.AllItemScreen
+import org.example.adminfoodapp.presentation.createuserscreen.CreateUserScreen
+import org.example.adminfoodapp.presentation.dineinscreen.TableManagementScreen
+import org.example.adminfoodapp.presentation.generalhistoryscreen.OrderHistoryScreen
+import org.example.adminfoodapp.presentation.orderbillingscreen.OrderBillingScreen
+import org.example.adminfoodapp.presentation.outofdeliveryscreen.OutOfDeliveryScreen
+import org.example.adminfoodapp.presentation.pendingorderscreen.PendingOrderScreen
+import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
+import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel
+import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
+import org.example.adminfoodapp.utils.MainActivityUiState
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
+// --- PRO MODERN POS THEME PALETTE ---
+private val SurfaceBackground = Color(0xFFF8FAFC)
+private val SidebarBackground = Color(0xFFFFFFFF)
+private val PrimaryAccent = Color(0xFF059669)
+private val PrimaryAccentLight = Color(0xFFECFDF5)
+private val TextPrimary = Color(0xFF0F172A)
+private val TextSecondary = Color(0xFF64748B)
+private val CardBorderColor = Color(0xFFE2E8F0)
+
+data class SidebarMenuItem(
+    val title: String,
+    val iconRes: org.jetbrains.compose.resources.DrawableResource,
+    val targetTab: DashboardTab
+)
+
+enum class DashboardTab(val title: String) {
+    DASHBOARD_HOME("Dashboard"),
+    TAKEAWAY_BILLING("Takeaway POS"),
+    DINE_IN_TABLES("Dine-In Management"),
+    ONLINE_PENDING("Pending Orders"),
+    ONLINE_HISTORY("Online Delivery History"),
+    GENERAL_HISTORY("General Sales History"),
+    ADD_MENU_ITEM("Add New Item"),
+    ONLINE_ITEMS("Menu Catalog"),
+    ADMIN_PROFILE("Admin Profile"),
+    SUB_USERS("User Access Control")
+}
+
 @Composable
-fun MainScreen(navController: NavHostController) {
-    val viewModel: MainScreenViewModel = koinViewModel()
-    val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
+fun MainScreen(
+    navController: NavHostController,
+    viewModel: MainScreenViewModel = koinViewModel()
+) {
     val uiState by viewModel.uiState.collectAsState()
-    var showDialog by remember { mutableStateOf(false) }
+    val localOrders by viewModel.localPendingOrders.collectAsState()
+    val onlineOrders by viewModel.onlinePendingOrders.collectAsState()
 
-    val bgColor = Brush.verticalGradient(
-        colors = listOf(Color(0xFFF8F9FE), Color(0xFFE9EFFF))
-    )
+    val sharedEditItemViewModel = koinInject<SharedEditItemViewModel>()
+    val sharedOrderItemViewModel = koinInject<SharedOrderItemViewModel>()
+    val shareUserItemViewModel = koinInject<ShareUserItemViewModel>()
 
-    Box(
-        modifier = Modifier.fillMaxSize().background(bgColor)
+    var currentTab by remember { mutableStateOf(DashboardTab.DASHBOARD_HOME) }
+    val scope = rememberCoroutineScope()
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(SurfaceBackground)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp)
-        ) {
-            // Top Bar
-            TopAppBarSection(navController = navController)
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Welcome back, Admin 👋", color = Color(0xFF808191), fontSize = 14.sp
-            )
-
-            // Stats Section
-            Spacer(modifier = Modifier.height(20.dp))
-            StatsSection(
-                onTotalEarningClick = { showDialog = true },
-                totalEarningCount = uiState.totalEarnings,
-                pendingOrderCount = uiState.pendingOrdersCount,
-                processedOrderCount = uiState.completeOrdersCount
-            )
-
-            // Quick Actions Section
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Restaurant Operations", style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                    fontSize = 20.sp,
-                    color = Color(0xFF11142D)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-            QuickActionsGrid(navController = navController)
-
-            Spacer(modifier = Modifier.height(40.dp))
-            Text(
-                text = "Design By\nHammad Baloch",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                color = Color(0xFF808191),
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), lineHeight = 22.sp
-                )
-            )
-            Spacer(modifier = Modifier.height(100.dp)) // Extra space for FAB
-        }
-
-        // Floating Action Button
-        FloatingActionButton(
-            onClick = {
+        ResponsiveSidebarSection(
+            currentTab = currentTab,
+            onTabSelected = { selectedTab -> currentTab = selectedTab },
+            onLogoutClick = {
                 scope.launch {
                     viewModel.sessionOut()
                     navController.navigate(NavRoutes.LoginScreen) {
                         popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
                     }
                 }
-            },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
-            containerColor = Color(0xFFFF3B3B),
-            contentColor = Color.White,
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Icon(painter = painterResource(Res.drawable.log_out), contentDescription = "Sign Out")
-        }
-    }
-
-    if (showDialog) {
-        EarningsDialog(amount = uiState.totalEarnings, onDismiss = { showDialog = false })
-    }
-}
-
-@Composable
-fun TopAppBarSection(navController: NavController) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            modifier = Modifier.size(45.dp).clip(RoundedCornerShape(12.dp)).clickable(
-                onClick = { navController.navigate(NavRoutes.UserProfileScreen) }),
-            shape = RoundedCornerShape(12.dp),
-            color = Color.White,
-            shadowElevation = 2.dp
-        ) {
-            Icon(
-                painterResource(Res.drawable.profile_user),
-                contentDescription = null,
-                tint = TextColor,
-                modifier = Modifier.padding(10.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Text(
-            text = "X Cafe - Restaurant POS", style = MaterialTheme.typography.headlineSmall.copy(
-                fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), color = Color(0xFF11142D)
-            )
-        )
-    }
-}
-
-@Composable
-fun StatsSection(
-    onTotalEarningClick: () -> Unit, totalEarningCount: Int, pendingOrderCount: Int, processedOrderCount: Int
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        // Earning Card
-        Card(
-            modifier = Modifier.weight(0.45f).fillMaxHeight().clip(RoundedCornerShape(24.dp)).clickable(onClick = {
-                onTotalEarningClick()
-            }),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF6C5DD3)),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(6.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp), color = Color.White, modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        painterResource(Res.drawable.dollar),
-                        contentDescription = "$",
-                        modifier = Modifier.wrapContentSize(),
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = "Rs: $totalEarningCount", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold
-                )
-                Text("Whole Time\nEarnings", color = Color(0xFFE4E1FA), fontSize = 12.sp)
             }
-        }
-
-        // Pending and Processed Cards
-        Column(
-            modifier = Modifier.weight(0.55f), verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            StatSmallCard(
-                title = "Pending",
-                value = "$pendingOrderCount",
-                valueColor = Color(0xFFFF9800),
-                bgColor = Color(0xFFFFF4E5)
-            )
-            StatSmallCard(
-                title = "Processed",
-                value = "$processedOrderCount",
-                valueColor = Color(0xFF4CAF50),
-                bgColor = Color(0xFFEAF7ED)
-            )
-        }
-    }
-}
-
-@Composable
-fun StatSmallCard(title: String, value: String, valueColor: Color, bgColor: Color) {
-    Card(
-        modifier = Modifier.fillMaxWidth().height(75.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(title, color = Color(0xFF808191), fontSize = 14.sp)
-            Surface(
-                color = bgColor, shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = value,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    color = valueColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun QuickActionsGrid(navController: NavController) {
-    val items = listOf(
-        QuickActionData(
-            "Dine-In\nOrders", Color(0xFFE0F7FA), Color(0xFF00838F), Res.drawable.eye, NavRoutes.TableManagementScreen
-        ),
-        QuickActionData(
-            "Takeaway\nOrders", Color(0xFFEDE7F6), Color(0xFF512DA8), Res.drawable.order_processed, NavRoutes.OrderBillingScreen(isTakeAway = true)
-        ),
-        QuickActionData(
-            "Online\nPending", Color(0xFFFFF3E0), Color(0xFFE65100), Res.drawable.attantion, NavRoutes.PendingOrderScreen
-        ),
-        QuickActionData(
-            "Online\nHistory", Color(0xFFE3F2FD), Color(0xFF1565C0), Res.drawable.order_processed, NavRoutes.OutOfDeliveryScreen
-        ),
-        QuickActionData(
-            "General\nHistory", Color(0xFFE3F2FD), Color(0xFF1565C0), Res.drawable.order_processed, NavRoutes.OrderHistoryScreen
-        ),
-        QuickActionData(
-            "Add Online\nMenu Item", Color(0xFFE8F5E9), Color(0xFF2E7D32), Res.drawable.pluse_round, NavRoutes.AddItemScreen
-        ),
-        QuickActionData(
-            "Online\nMenu Item", Color(0xFFE8F5E9), Color(0xFF2E7D32), Res.drawable.pluse_round, NavRoutes.AllItemScreen
-        ),
-        QuickActionData(
-            "Tables\nGeneral Item", Color(0xFFF3E5F5), Color(0xFF6A1B9A), Res.drawable.eye, NavRoutes.TableAndItemsScreen
-        ),
-        QuickActionData(
-            "Admin\nProfile", Color(0xFFFAFAFA), Color(0xFF424242), Res.drawable.user, NavRoutes.AdminProfileScreen
-        ),
-        QuickActionData(
-            "Create New\nSub-User", Color(0xFFFFF8E1), Color(0xFFF9A825), Res.drawable.user_plus, NavRoutes.CreateUserScreen
         )
-    )
 
-    BoxWithConstraints {
-        val columns = if (maxWidth > 600.dp) 3 else 2
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = PrimaryAccent
+                )
+            } else {
+                when (currentTab) {
+                    DashboardTab.DASHBOARD_HOME -> {
+                        DashboardHomeContent(
+                            uiState = uiState,
+                            localOrders = localOrders,
+                            onlineOrders = onlineOrders,
+                            navController = navController,
+                            onNavigateToTab = { currentTab = it }
+                        )
+                    }
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            for (i in items.indices step columns) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    for (j in 0 until columns) {
-                        val index = i + j
-                        if (index < items.size) {
-                            QuickActionCard(
-                                navController = navController, data = items[index], modifier = Modifier.weight(1f)
+                    DashboardTab.TAKEAWAY_BILLING -> {
+                        OrderBillingScreen(
+                            args = NavRoutes.OrderBillingScreen(isTakeAway = true),
+                            navController = navController
+                        )
+                    }
+
+                    DashboardTab.DINE_IN_TABLES -> {
+                        EmbeddedScreenWrapper(
+                            title = DashboardTab.DINE_IN_TABLES.title,
+                            onBackToDashboard = { currentTab = DashboardTab.DASHBOARD_HOME }
+                        ) {
+                            TableManagementScreen(navController = navController)
+                        }
+                    }
+
+                    DashboardTab.ONLINE_PENDING -> {
+                        EmbeddedScreenWrapper(
+                            title = DashboardTab.ONLINE_PENDING.title,
+                            onBackToDashboard = { currentTab = DashboardTab.DASHBOARD_HOME }
+                        ) {
+                            PendingOrderScreen(
+                                navController = navController,
+                                sharedOrderItemViewModel = sharedOrderItemViewModel
                             )
-                        } else {
-                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+
+                    DashboardTab.ONLINE_HISTORY -> {
+                        EmbeddedScreenWrapper(
+                            title = DashboardTab.ONLINE_HISTORY.title,
+                            onBackToDashboard = { currentTab = DashboardTab.DASHBOARD_HOME }
+                        ) {
+                            OutOfDeliveryScreen(navController = navController)
+                        }
+                    }
+
+                    DashboardTab.GENERAL_HISTORY -> {
+                        EmbeddedScreenWrapper(
+                            title = DashboardTab.GENERAL_HISTORY.title,
+                            onBackToDashboard = { currentTab = DashboardTab.DASHBOARD_HOME }
+                        ) {
+                            OrderHistoryScreen(navController = navController)
+                        }
+                    }
+
+                    DashboardTab.ADD_MENU_ITEM -> {
+                        EmbeddedScreenWrapper(
+                            title = DashboardTab.ADD_MENU_ITEM.title,
+                            onBackToDashboard = { currentTab = DashboardTab.DASHBOARD_HOME }
+                        ) {
+                            AddItemScreen(navController = navController)
+                        }
+                    }
+
+                    DashboardTab.ONLINE_ITEMS -> {
+                        EmbeddedScreenWrapper(
+                            title = DashboardTab.ONLINE_ITEMS.title,
+                            onBackToDashboard = { currentTab = DashboardTab.DASHBOARD_HOME }
+                        ) {
+                            AllItemScreen(
+                                navController = navController,
+                                sharedEditItemViewModel = sharedEditItemViewModel
+                            )
+                        }
+                    }
+
+                    DashboardTab.ADMIN_PROFILE -> {
+                        EmbeddedScreenWrapper(
+                            title = DashboardTab.ADMIN_PROFILE.title,
+                            onBackToDashboard = { currentTab = DashboardTab.DASHBOARD_HOME }
+                        ) {
+                            AdminProfileScreen(
+                                navController = navController,
+                                shareUserItemViewModel = shareUserItemViewModel
+                            )
+                        }
+                    }
+
+                    DashboardTab.SUB_USERS -> {
+                        EmbeddedScreenWrapper(
+                            title = DashboardTab.SUB_USERS.title,
+                            onBackToDashboard = { currentTab = DashboardTab.DASHBOARD_HOME }
+                        ) {
+                            CreateUserScreen(navController = navController)
                         }
                     }
                 }
@@ -292,39 +225,446 @@ fun QuickActionsGrid(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuickActionCard(navController: NavController, data: QuickActionData, modifier: Modifier) {
-    Card(
-        modifier = modifier.height(130.dp).clip(RoundedCornerShape(20.dp)).clickable {
-            navController.navigate(data.navRoutes)
-        },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Surface(
-                modifier = Modifier.size(36.dp), shape = RoundedCornerShape(10.dp), color = data.iconBg
-            ) {
-                Icon(
-                    painterResource(data.iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.padding(8.dp),
-                    tint = data.iconTint
+fun EmbeddedScreenWrapper(
+    title: String,
+    onBackToDashboard: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(
+            title = {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = TextPrimary
                 )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = data.title, style = MaterialTheme.typography.bodyLarge.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                    color = Color(0xFF11142D),
-                    lineHeight = 18.sp
-                )
-            )
+            },
+            navigationIcon = {
+                IconButton(onClick = onBackToDashboard) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = TextPrimary
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = SidebarBackground),
+            modifier = Modifier.shadow(2.dp)
+        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            content()
         }
     }
 }
 
-data class QuickActionData(
-    val title: String, val iconBg: Color, val iconTint: Color, val iconRes: DrawableResource, val navRoutes: NavRoutes
-)
+@Composable
+fun ResponsiveSidebarSection(
+    currentTab: DashboardTab,
+    onTabSelected: (DashboardTab) -> Unit,
+    onLogoutClick: () -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(true) }
+
+    val sidebarWidth by animateDpAsState(
+        targetValue = if (isExpanded) 260.dp else 80.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessLow)
+    )
+
+    val menuItems = listOf(
+        SidebarMenuItem("Dashboard", Res.drawable.user, DashboardTab.DASHBOARD_HOME),
+        SidebarMenuItem("Takeaway POS", Res.drawable.order_processed, DashboardTab.TAKEAWAY_BILLING),
+        SidebarMenuItem("Dine-In Tables", Res.drawable.eye, DashboardTab.DINE_IN_TABLES),
+        SidebarMenuItem("Online Pending", Res.drawable.attantion, DashboardTab.ONLINE_PENDING),
+        SidebarMenuItem("Online History", Res.drawable.order_processed, DashboardTab.ONLINE_HISTORY),
+        SidebarMenuItem("General History", Res.drawable.order_processed, DashboardTab.GENERAL_HISTORY),
+        SidebarMenuItem("Add Menu Item", Res.drawable.pluse_round, DashboardTab.ADD_MENU_ITEM),
+        SidebarMenuItem("Online Items", Res.drawable.arrow_left, DashboardTab.ONLINE_ITEMS),
+        SidebarMenuItem("Admin Profile", Res.drawable.arrow_left, DashboardTab.ADMIN_PROFILE),
+        SidebarMenuItem("Sub Users", Res.drawable.user_plus, DashboardTab.SUB_USERS)
+    )
+
+    Column(
+        modifier = Modifier
+            .width(sidebarWidth)
+            .fillMaxHeight()
+            .background(SidebarBackground)
+            .border(width = 1.dp, color = CardBorderColor)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (isExpanded) Arrangement.SpaceBetween else Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        modifier = Modifier.size(38.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = PrimaryAccent
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("HB", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                    if (isExpanded) {
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Hammad Baloch",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "Pro Admin POS",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = PrimaryAccent
+                            )
+                        }
+                    }
+                }
+
+                IconButton(
+                    onClick = { isExpanded = !isExpanded },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
+                        contentDescription = "Toggle Sidebar",
+                        tint = TextSecondary
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = CardBorderColor)
+
+            menuItems.forEach { item ->
+                val isSelected = currentTab == item.targetTab
+                val itemBg = if (isSelected) PrimaryAccent else Color.Transparent
+                val itemIconColor = if (isSelected) Color.White else TextSecondary
+                val itemTextColor = if (isSelected) Color.White else TextPrimary
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(itemBg)
+                        .clickable { onTabSelected(item.targetTab) }
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = if (isExpanded) Arrangement.Start else Arrangement.Center
+                ) {
+                    Icon(
+                        painter = painterResource(item.iconRes),
+                        contentDescription = item.title,
+                        modifier = Modifier.size(20.dp),
+                        tint = itemIconColor
+                    )
+
+                    if (isExpanded) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = item.title,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = itemTextColor,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFFEF2F2))
+                .clickable { onLogoutClick() }
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = if (isExpanded) Arrangement.Start else Arrangement.Center
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.log_out),
+                contentDescription = "Logout",
+                tint = Color(0xFFEF4444),
+                modifier = Modifier.size(18.dp)
+            )
+            if (isExpanded) {
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Logout", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardHomeContent(
+    uiState: MainActivityUiState,
+    localOrders: List<QuickPendingOrder>,
+    onlineOrders: List<OrderDetails>,
+    navController: NavHostController,
+    onNavigateToTab: (DashboardTab) -> Unit
+) {
+    val dineInPending = localOrders.filter { it.orderType.equals("DINE_IN", ignoreCase = true) || it.titleOrTable.contains("Table", ignoreCase = true) }
+    val takeawayPending = localOrders.filter { !dineInPending.contains(it) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(28.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Welcome Back 👋",
+                    fontSize = 13.sp,
+                    color = TextSecondary,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "X Cafe POS Overview",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            }
+
+            Surface(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .clickable { navController.navigate(NavRoutes.UserProfileScreen) },
+                color = SidebarBackground,
+                shadowElevation = 4.dp
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.profile_user),
+                    contentDescription = "Profile",
+                    modifier = Modifier.padding(11.dp),
+                    tint = PrimaryAccent
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        DetailedStatsGrid(uiState = uiState)
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Active Live Orders & Lists",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+        Text(
+            text = "Real-time tracking for Online, Takeaway and Dine-In orders",
+            fontSize = 12.sp,
+            color = TextSecondary
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            OnlinePendingOrdersCard(
+                orders = onlineOrders,
+                modifier = Modifier.weight(1f)
+            )
+
+            SpecificPendingOrdersCard(
+                title = "Pending Takeaway Orders",
+                orders = takeawayPending,
+                badgeColor = Color(0xFF9333EA),
+                bgColor = Color(0xFFF3E8FF),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SpecificPendingOrdersCard(
+                title = "Pending Dine-In Orders",
+                orders = dineInPending,
+                badgeColor = PrimaryAccent,
+                bgColor = PrimaryAccentLight,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(30.dp))
+    }
+}
+
+@Composable
+fun DetailedStatsGrid(uiState: MainActivityUiState) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        MetricCard("Total Revenue", "Rs. ${uiState.totalEarnings}", PrimaryAccentLight, PrimaryAccent, Modifier.weight(1f))
+        MetricCard("Pending Orders", "${uiState.pendingOrdersCount} Orders", Color(0xFFFFFBEB), Color(0xFFD97706), Modifier.weight(1f))
+        MetricCard("Completed Orders", "${uiState.completeOrdersCount} Orders", Color(0xFFEEF2FF), Color(0xFF4F46E5), Modifier.weight(1f))
+    }
+}
+
+@Composable
+fun MetricCard(title: String, value: String, iconBg: Color, iconTint: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = SidebarBackground),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, CardBorderColor)
+    ) {
+        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(iconBg, RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.dollar),
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(text = title, fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+                Text(text = value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            }
+        }
+    }
+}
+
+@Composable
+fun OnlinePendingOrdersCard(orders: List<OrderDetails>, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = SidebarBackground),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, CardBorderColor)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Pending Online Orders", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
+                Surface(color = Color(0xFFEFF6FF), shape = RoundedCornerShape(20.dp)) {
+                    Text(
+                        text = "${orders.size} Pending",
+                        color = Color(0xFF2563EB),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(color = CardBorderColor)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (orders.isEmpty()) {
+                Text("Koi online order pending nahi hai.", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(vertical = 12.dp))
+            } else {
+                orders.take(5).forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(item.userName ?: "Customer", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = TextPrimary)
+                        Text("${item.totalPrice ?: "0"}", color = Color(0xFF2563EB), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SpecificPendingOrdersCard(
+    title: String,
+    orders: List<QuickPendingOrder>,
+    badgeColor: Color,
+    bgColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = SidebarBackground),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, CardBorderColor)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
+                Surface(color = bgColor, shape = RoundedCornerShape(20.dp)) {
+                    Text(
+                        text = "${orders.size} Orders",
+                        color = badgeColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(color = CardBorderColor)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (orders.isEmpty()) {
+                Text("Koi order pending nahi hai.", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(vertical = 12.dp))
+            } else {
+                orders.take(5).forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(item.titleOrTable, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = TextPrimary)
+                        Text("Rs. ${item.totalAmount.toInt()}", color = badgeColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+    }
+}

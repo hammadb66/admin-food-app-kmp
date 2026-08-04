@@ -233,14 +233,34 @@ class FirebaseMenuDataSource(
             Result.failure(e)
         }
     }
-    private suspend fun updateFirebaseData(key: String, item: AllMenu, fileToCleanup: File?): Result<Unit> {
-        return try {
-            menuRef.child(key).setValue(item)
-            if (fileToCleanup != null && fileToCleanup.exists()) fileToCleanup.delete()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            if (fileToCleanup != null && fileToCleanup.exists()) fileToCleanup.delete()
-            Result.failure(e)
+
+    // FirebaseMenuDataSource.kt ke andar yeh function add karein:
+    fun getCategories(): Flow<Resource<List<String>>> = callbackFlow {
+        trySend(Resource.Loading)
+        val ref = db.child("menu")
+
+        val job = launch {
+            try {
+                ref.valueEvents.collect { snapshot ->
+                    val categorySet = mutableSetOf<String>()
+                    for (child in snapshot.children) {
+                        val menuItem = child.value<AllMenu?>()
+                        menuItem?.category?.let { cat ->
+                            if (cat.isNotBlank()) {
+                                categorySet.add(cat)
+                            }
+                        }
+                    }
+                    trySend(Resource.Success(categorySet.toList()))
+                }
+            } catch (e: Exception) {
+                trySend(Resource.Error(e.message.toString()))
+            }
         }
+        awaitClose { job.cancel() }
     }
+
+
+
+
 }

@@ -5,6 +5,7 @@ import org.example.adminfoodapp.database.model.UserModel
 import org.example.adminfoodapp.database.remote.FirebaseAuthenticationDataSource
 import org.example.adminfoodapp.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
+import org.example.adminfoodapp.utils.LoginState
 
 class AuthRepositoryImpl(
     private val dataSource: FirebaseAuthenticationDataSource
@@ -12,7 +13,7 @@ class AuthRepositoryImpl(
 
     override fun signUp(user: UserModel) = dataSource.signUp(user)
 
-    override fun login(email: String, password: String): Flow<Resource<UserModel>> =
+    override fun login(email: String, password: String): Flow<LoginState<UserModel>> =
         dataSource.login(email, password)
 
     override fun currentUser(): Flow<Resource<UserModel>> =

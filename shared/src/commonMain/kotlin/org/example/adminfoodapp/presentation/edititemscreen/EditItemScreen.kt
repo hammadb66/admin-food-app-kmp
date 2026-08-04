@@ -4,6 +4,8 @@ import TextColor
 import adminfoodapp.shared.generated.resources.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -37,16 +39,23 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
 
     val previousItemState = sharedEditItemViewModel.itemToEdit.collectAsState()
     val previousItem = previousItemState.value
+
     var foodName by remember { mutableStateOf(previousItem?.foodName ?: "") }
     var foodPrice by remember { mutableStateOf(previousItem?.foodPrice ?: "") }
     var description by remember { mutableStateOf(previousItem?.foodDescription ?: "") }
     var ingredients by remember { mutableStateOf(previousItem?.foodIngredient ?: "") }
+
+    // Category aur IsPopular states
+    var selectedCategory by remember { mutableStateOf(previousItem?.category ?: "") }
+    var customCategoryInput by remember { mutableStateOf("") }
+    var isPopular by remember { mutableStateOf(previousItem?.isPopular ?: false) }
+
     var selectedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var imageUrl by remember(previousItem) { mutableStateOf(previousItem?.foodImage) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val viewModel: EditItemViewModel = koinViewModel()
-
+    val categories by viewModel.categories.collectAsState()
     val state by viewModel.uploadState.collectAsState()
 
     val scrollState = rememberScrollState()
@@ -63,25 +72,18 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
             }
         }
     }
+
     LaunchedEffect(state) {
         when (state) {
             is UploadState.Success -> {
                 viewModel.resetState()
                 navController.navigateUp()
-
             }
-
             is UploadState.Error -> {
                 errorMessage = (state as UploadState.Error).message
-
             }
-
             else -> Unit
-
-
         }
-
-
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
@@ -92,16 +94,13 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
             Box(
                 modifier = Modifier.fillMaxWidth().height(280.dp)
             ) {
-                // Background Image Placeholder
                 AsyncImage(
-                        model = selectedImageBytes?:imageUrl?:Res.drawable.image_placeholder,
-                        contentDescription = "Selected Image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    model = selectedImageBytes ?: imageUrl ?: Res.drawable.image_placeholder,
+                    contentDescription = "Selected Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
 
-
-                // Top Gradient Scrim
                 Box(
                     modifier = Modifier.fillMaxWidth().height(100.dp).background(
                         Brush.verticalGradient(
@@ -110,7 +109,6 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
                     )
                 )
 
-                // Back Button & Title
                 Row(
                     modifier = Modifier.padding(16.dp).statusBarsPadding(),
                     verticalAlignment = Alignment.CenterVertically
@@ -125,14 +123,13 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
                     Spacer(modifier = Modifier.width(16.dp))
 
                     Text(
-                        text = "New Menu Item",
+                        text = "Edit Menu Item",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
                     )
                 }
 
-                // Floating Change Image Button
                 Box(
                     modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 40.dp, end = 20.dp)
                 ) {
@@ -143,20 +140,21 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
                         shape = CircleShape,
                         modifier = Modifier.size(55.dp)
                     ) {
-                        Icon(painterResource(Res.drawable.pluse_round), contentDescription = "Add Image")
+                        Icon(painterResource(Res.drawable.pluse_round), contentDescription = "Change Image")
                     }
                 }
             }
 
             // Form Sheet Section
             Surface(
-                modifier = Modifier.fillMaxWidth().offset(y = (-30).dp), // Overlap effect
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), color = Color.White, tonalElevation = 8.dp
+                modifier = Modifier.fillMaxWidth().offset(y = (-30).dp),
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                color = Color.White,
+                tonalElevation = 8.dp
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)
                 ) {
-                    // Drag Handle
                     Box(
                         modifier = Modifier.width(50.dp).height(5.dp)
                             .background(Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
@@ -164,6 +162,15 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
                     )
 
                     Spacer(modifier = Modifier.height(30.dp))
+
+                    errorMessage?.let { msg ->
+                        Text(
+                            text = msg,
+                            color = Color.Red,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
 
                     // Form Fields
                     AddItemTextField(
@@ -183,7 +190,82 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
                         keyboardType = KeyboardType.Number
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // CATEGORY SELECTION LAZY ROW
+                    Text(
+                        text = "Select Category",
+                        color = darkGray,
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(categories) { category ->
+                            val isSelected = selectedCategory == category
+                            Surface(
+                                modifier = Modifier.clickable {
+                                    selectedCategory = category
+                                    customCategoryInput = ""
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) goldAccent else Color(0xFFF5F5F5),
+                                border = BorderStroke(1.dp, if (isSelected) goldAccent else Color.LightGray)
+                            ) {
+                                Text(
+                                    text = category,
+                                    color = if (isSelected) Color.White else darkGray,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // OR TYPE NEW CATEGORY
+                    OutlinedTextField(
+                        value = customCategoryInput,
+                        onValueChange = {
+                            customCategoryInput = it
+                            if (it.isNotBlank()) selectedCategory = it
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Or Type New Category") },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = goldAccent,
+                            focusedLabelColor = goldAccent
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // IS POPULAR SWITCH
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Is Popular Item?",
+                            color = darkGray,
+                            fontSize = 18.sp,
+                            fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
+                        )
+                        Switch(
+                            checked = isPopular,
+                            onCheckedChange = { isPopular = it },
+                            colors = SwitchDefaults.colors(checkedThumbColor = goldAccent)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
                     HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -231,11 +313,11 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Add Item Button
+                    // Update Item Button
                     Button(
                         onClick = {
-                            if (foodName.isBlank() || foodPrice.isBlank() || description.isBlank() || ingredients.isBlank()) {
-                                errorMessage = "Please fill all fields"
+                            if (foodName.isBlank() || foodPrice.isBlank() || description.isBlank() || ingredients.isBlank() || selectedCategory.isBlank()) {
+                                errorMessage = "Please fill all fields and select a category"
                                 return@Button
                             }
 
@@ -246,7 +328,10 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
                                 foodPrice = foodPrice.trim(),
                                 foodDescription = description.trim(),
                                 foodIngredient = ingredients.trim(),
-                                foodImage = imageUrl
+                                foodImage = imageUrl,
+                                category = selectedCategory.trim(),
+                                isPopular = isPopular,
+                                orderCount = previousItem?.orderCount ?: 0
                             )
                             sharedEditItemViewModel.clearItemToEdit()
                             viewModel.updateMenuItem(item, selectedImageBytes)
@@ -277,7 +362,6 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
         }
     }
 }
-
 @Composable
 fun AddItemTextField(
     value: String,
