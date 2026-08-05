@@ -62,5 +62,7 @@ sealed interface NavRoutes {
 
     @Serializable
     object TableAndItemsScreen : NavRoutes
+    @Serializable
+    object TakeAwayScreen : NavRoutes
 
 }

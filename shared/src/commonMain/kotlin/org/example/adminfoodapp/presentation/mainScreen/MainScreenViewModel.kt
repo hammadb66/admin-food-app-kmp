@@ -91,9 +91,12 @@ class MainScreenViewModel(
             ) { localAnalytics, onlineEarning, onlineComplete, onlinePendingList, localPendingList ->
 
                 MainActivityUiState(
-                    totalEarnings = localAnalytics.totalEarnings + onlineEarning,
-                    completeOrdersCount = localAnalytics.completeOrdersCount + onlineComplete,
-                    pendingOrdersCount = onlinePendingList.size + localPendingList.size,
+                    totalOnlineEarnings = onlineEarning,
+                    totalLocalEarnings = localAnalytics.totalLocalEarnings,
+                    onlineCompleteOrders = onlineComplete,
+                    localCompleteOrders = localAnalytics.localCompleteOrders,
+                    onlinePendingOrders = onlinePendingList.size,
+                    localPendingOrders = localPendingList.size,
                     isLoading = false
                 )
             }.collectLatest { combinedState ->

@@ -23,6 +23,7 @@ import androidx.navigation.NavHostController
 import org.example.adminfoodapp.database.OrderItemsEntity
 import org.example.adminfoodapp.database.OrdersEntity
 import org.example.adminfoodapp.database.VoidLogsEntity
+import org.example.adminfoodapp.utils.ORDERTYPE
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -193,7 +194,7 @@ fun OrderHistoryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (order.orderType == "DINE_IN") "Table #${order.tableId} (Dine-In)" else "Takeaway Order",
+                    text = if (order.orderType == ORDERTYPE.DINEIN.id) "Table #${order.tableId} (Dine-In)" else "Takeaway Order",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )

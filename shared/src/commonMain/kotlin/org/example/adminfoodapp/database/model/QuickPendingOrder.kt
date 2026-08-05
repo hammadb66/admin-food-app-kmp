@@ -3,7 +3,7 @@ package org.example.adminfoodapp.database.model
 
 data class QuickPendingOrder(
     val id: String,
-    val orderType: String,
+    val orderType: Long,
     val titleOrTable: String,
     val itemCount: Int,
     val totalAmount: Double,

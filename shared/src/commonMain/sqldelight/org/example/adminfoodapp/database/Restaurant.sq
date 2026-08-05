@@ -3,7 +3,7 @@
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         tableNumber TEXT NOT NULL UNIQUE,
         capacity INTEGER NOT NULL DEFAULT 4,
-        status TEXT NOT NULL DEFAULT 'AVAILABLE'
+        status INTEGER NOT NULL DEFAULT 0
     );
 
     -- 2. Menu Items Entity (Food Catalog)
@@ -20,9 +20,9 @@
         tableId INTEGER,
         customerName TEXT NOT NULL,
         customerNumber INTEGER NOT NULL,
-        orderType TEXT NOT NULL,
+        orderType INTEGER NOT NULL,
         totalAmount REAL NOT NULL DEFAULT 0.0,
-        orderStatus TEXT NOT NULL DEFAULT 'PENDING',
+        orderStatus INTEGER NOT NULL DEFAULT 0,
         createdAt INTEGER NOT NULL,
         createdByID INTEGER NOT NULL DEFAULT 0,
         createdByName TEXT NOT NULL DEFAULT 'Admin'
@@ -69,7 +69,7 @@ CREATE TABLE UserEntity (
     SELECT * FROM TablesEntity ORDER BY id ASC;
 
     insertTable:
-    INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status) VALUES (?, ?, 'AVAILABLE');
+    INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status) VALUES (?, ?, 1);
 
     updateTableStatus:
     UPDATE TablesEntity SET status = ? WHERE id = ?;
@@ -81,9 +81,9 @@ CREATE TABLE UserEntity (
     getAllMenuItems:
     SELECT * FROM GenralItemsEntity;
 
-getPendingTakeawayOrNullOrders:
-SELECT * FROM OrdersEntity
-WHERE orderStatus = 'PENDING' AND (tableId IS NULL OR tableId = 0);
+    getPendingTakeawayOrNullOrders:
+    SELECT * FROM OrdersEntity
+    WHERE orderStatus = 0 AND (tableId IS NULL OR tableId = 0);
 
 
     insertMenuItem:
@@ -92,19 +92,29 @@ WHERE orderStatus = 'PENDING' AND (tableId IS NULL OR tableId = 0);
     deleteGeneralItem:
     DELETE FROM GenralItemsEntity WHERE id=?;
 
-updateTable:
-UPDATE TablesEntity SET tableNumber = ?, capacity = ? WHERE id = ?;
+    updateTable:
+    UPDATE TablesEntity SET tableNumber = ?, capacity = ? WHERE id = ?;
 
-updateGeneralItem:
-UPDATE GenralItemsEntity SET itemName = ?, price = ? WHERE id = ?;
+
+    updateOrderCustomerInfo:
+    UPDATE OrdersEntity SET customerName=?,customerNumber=? WHERE id=?;
+
+
+    updateGeneralItem:
+    UPDATE GenralItemsEntity SET itemName = ?, price = ? WHERE id = ?;
     -- Active Order Queries
     getPendingOrderForTable:
-    SELECT * FROM OrdersEntity WHERE tableId = ? AND orderStatus = 'PENDING' LIMIT 1;
+    SELECT * FROM OrdersEntity WHERE tableId = ? AND orderStatus = 0 LIMIT 1;
+
+
+    getPendingOrderForTakeAway:
+    SELECT*FROM OrdersEntity WHERE orderStatus =0 AND orderType=1;
 
     createNewOrder:
     INSERT INTO OrdersEntity(tableId,customerName,customerNumber, orderType, totalAmount, orderStatus, createdAt,createdByID,createdByName)
-    VALUES (?,?,?, ?, ?, 'PENDING', ?,?,?);
-
+    VALUES (?,?,?, ?, ?, 0, ?,?,?);
+    getOrderById:
+    SELECT * FROM OrdersEntity WHERE id = ? AND orderStatus = 0 LIMIT 1;
     -- Order Items Queries
     getOrderItemsForOrder:
     SELECT * FROM OrderItemsEntity WHERE orderId = ?;
@@ -121,17 +131,17 @@ UPDATE GenralItemsEntity SET itemName = ?, price = ? WHERE id = ?;
 
     -- Checkout Queries
     completeOrder:
-    UPDATE OrdersEntity SET orderStatus = 'COMPLETED', totalAmount = ? WHERE id = ?;
+    UPDATE OrdersEntity SET orderStatus = 1, totalAmount = ? WHERE id = ?;
 
     -- History & Filtering Queries
     getOrdersHistoryByDateRange:
     SELECT * FROM OrdersEntity
-    WHERE orderStatus = 'COMPLETED' AND createdAt >= ? AND createdAt <= ?
+    WHERE orderStatus = 1 AND createdAt >= ? AND createdAt <= ?
     ORDER BY createdAt DESC;
 
     getDailySalesTotal:
     SELECT SUM(totalAmount) FROM OrdersEntity
-    WHERE orderStatus = 'COMPLETED' AND createdAt >= ?;
+    WHERE orderStatus = 1 AND createdAt >= ?;
 
 
     -- Save Void Audit Entry

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import org.example.adminfoodapp.database.TablesEntity
 import org.example.adminfoodapp.navigaiton.NavRoutes
+import org.example.adminfoodapp.utils.TABLESTATUS
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -81,7 +82,7 @@ fun TableCardItem(
     table: TablesEntity,
     onStatusToggle: () -> Unit,
 ) {
-    val isAvailable = table.status == "AVAILABLE"
+    val isAvailable = table.status == TABLESTATUS.AVAILABLE.id
     val cardBgColor = if (isAvailable) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
     val statusTextColor = if (isAvailable) Color(0xFF2E7D32) else Color(0xFFC62828)
 

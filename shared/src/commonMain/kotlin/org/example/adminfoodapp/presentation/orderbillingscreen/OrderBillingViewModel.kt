@@ -8,6 +8,7 @@ import org.example.adminfoodapp.database.GenralItemsEntity
 import org.example.adminfoodapp.database.OrderItemsEntity
 import org.example.adminfoodapp.database.repository.RestaurantRepository
 import org.example.adminfoodapp.database.repository.VoidLogBatchItem
+import org.example.adminfoodapp.utils.ORDERTYPE
 import org.example.adminfoodapp.utils.Resource
 
 // Unified Item UI State
@@ -35,7 +36,6 @@ class OrderBillingViewModel(
 
     private val _showBatchVoidDialog = MutableStateFlow(false)
     val showBatchVoidDialog: StateFlow<Boolean> = _showBatchVoidDialog.asStateFlow()
-
     private val _checkoutSuccess = MutableSharedFlow<Unit>()
     val checkoutSuccess: SharedFlow<Unit> = _checkoutSuccess.asSharedFlow()
 
@@ -49,11 +49,27 @@ class OrderBillingViewModel(
         getAllGeneralItem()
     }
 
+    private val _customerName = MutableStateFlow("")
+    val customerName: StateFlow<String> = _customerName.asStateFlow()
+
+    private val _customerNumber = MutableStateFlow("")
+    val customerNumber: StateFlow<String> = _customerNumber.asStateFlow()
+
+    fun changeCustomerName(name: String) {
+        _customerName.value = name
+    }
+
+    fun changeCustomerNumber(number: String) {
+        _customerNumber.value = number
+    }
+
     fun loadTableOrder(tableId: Long) {
         currentTableId = tableId
         viewModelScope.launch {
             val pendingOrder = repository.getPendingOrderForTable(tableId)
             if (pendingOrder != null) {
+                _customerName.value = pendingOrder.customerName
+                _customerNumber.value = pendingOrder.customerNumber.toString()
                 activeOrderId = pendingOrder.id
                 observeCommittedItems(pendingOrder.id)
             }
@@ -63,9 +79,7 @@ class OrderBillingViewModel(
     private fun observeCommittedItems(orderId: Long) {
         viewModelScope.launch {
             repository.getOrderItems(orderId).collect { dbList ->
-                // Sync DB items into UI working state
                 val currentWorkingMap = _billItems.value.associateBy { it.menuItemId }
-
                 _billItems.value = dbList.map { db ->
                     val working = currentWorkingMap[db.menuItemId]?.workingQuantity ?: db.quantity.toInt()
                     BillItemUiState(
@@ -137,8 +151,13 @@ class OrderBillingViewModel(
     }
 
     // Open/Close Batch Void Modal
-    fun openBatchVoidDialog() { _showBatchVoidDialog.value = true }
-    fun closeBatchVoidDialog() { _showBatchVoidDialog.value = false }
+    fun openBatchVoidDialog() {
+        _showBatchVoidDialog.value = true
+    }
+
+    fun closeBatchVoidDialog() {
+        _showBatchVoidDialog.value = false
+    }
 
     // Confirm Batch Decrement / Cancellation Reason
 // Confirm Batch Decrement / Cancellation Reason
@@ -181,17 +200,19 @@ class OrderBillingViewModel(
 
     // Print & Save (Prints Increments & New Drafts together)
 // Print & Save
-    fun printAndSaveOrder(customerName: String, customerNumberString: String, isTakeAway: Boolean) {
-        viewModelScope.launch {
-            val custNum = customerNumberString.toLongOrNull() ?: 0L
-            val orderType = if (isTakeAway) "TAKE_AWAY" else "DINE_IN"
+    fun printAndSaveOrder(isTakeAway: Boolean) {
 
+        viewModelScope.launch {
+
+            val orderType = "DINE_IN"
+
+            println(activeOrderId)
             if (activeOrderId == null) {
                 activeOrderId = repository.createOrder(
-                    customerName = if (customerName.isBlank()) "Walk-in Customer" else customerName,
-                    customerNumber = custNum,
+                    customerName = _customerName.value.ifEmpty { "Walk-in Customer" },
+                    customerNumber = if (_customerNumber.value.isEmpty()) 0L else _customerNumber.value.toLong(),
                     tableId = if (isTakeAway) null else currentTableId,
-                    orderType = orderType,
+                    orderType = ORDERTYPE.DINEIN.id,
                     currentTimeStamp = System.currentTimeMillis()
                 )
                 observeCommittedItems(activeOrderId!!)
@@ -224,15 +245,35 @@ class OrderBillingViewModel(
     // Checkout
     fun checkoutAndFreeTable(isTakeAway: Boolean) {
         val orderId = activeOrderId ?: return
+        println(activeOrderId)
+
         viewModelScope.launch {
             val total = _billItems.value.sumOf { it.price * it.workingQuantity }
             repository.checkoutOrder(
+                customerName = customerName.value,
+                customerNumber = customerNumber.value,
                 orderId = orderId,
                 tableId = if (isTakeAway) null else currentTableId,
                 finalAmount = total
             )
+            // 3️⃣ UI‑side reset
+            resetAfterCheckout()
+            // 4️⃣ Notify UI (navigate back)
             _checkoutSuccess.emit(Unit)
         }
+    }
+
+    /** Reset all UI‑state after a successful checkout */
+    private fun resetAfterCheckout() {
+        // UI list ko khali karo
+        _billItems.value = emptyList()
+        // Customer info reset (optional – agar aap chahte ho)
+        _customerName.value = ""
+        _customerNumber.value = ""
+        // Active order id ko null set karo – next time naya order create hoga
+        activeOrderId = null
+        // Table‑specific data (take‑away ke liye tableId = 0) ko bhi clean kar dein
+        currentTableId = 0L
     }
 
     private fun getAllGeneralItem() {
