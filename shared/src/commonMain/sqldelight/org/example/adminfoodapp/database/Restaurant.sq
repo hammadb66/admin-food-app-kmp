@@ -35,7 +35,7 @@
         menuItemId INTEGER NOT NULL,
         itemName TEXT NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 1,
-        printedQuantity INTEGER NOT NULL DEFAULT 0, -- Track printed items count
+        printedQuantity INTEGER NOT NULL DEFAULT 0,
         price REAL NOT NULL,
         FOREIGN KEY (orderId) REFERENCES OrdersEntity(id) ON DELETE CASCADE
     );
@@ -108,7 +108,7 @@ CREATE TABLE UserEntity (
 
 
     getPendingOrderForTakeAway:
-    SELECT*FROM OrdersEntity WHERE orderStatus =0 AND orderType=1;
+    SELECT * FROM OrdersEntity WHERE orderStatus = 0 AND orderType = 1 LIMIT 1;
 
     createNewOrder:
     INSERT INTO OrdersEntity(tableId,customerName,customerNumber, orderType, totalAmount, orderStatus, createdAt,createdByID,createdByName)

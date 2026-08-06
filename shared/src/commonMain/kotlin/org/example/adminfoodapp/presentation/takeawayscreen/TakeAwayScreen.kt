@@ -77,46 +77,25 @@ fun TakeAwayScreen(navController: NavHostController) {
             onConfirm = { reason -> viewModel.confirmBatchVoid(reason) },
             onDismiss = { viewModel.closeBatchVoidDialog() })
     }
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val isCompactScreen = maxWidth < 700.dp
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = PrimaryAccentLight,
-                        modifier = Modifier.padding(end = 10.dp)
+            Column(
+                modifier = Modifier.fillMaxSize()
+                    .then(if (isCompactScreen) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                    .padding(12.dp)
+            ) {
+
+
+                // HEADER BAR (Revert Button Fixed Here)
+                if (hasPendingDecrements || hasUnprintedIncrements) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.TableRestaurant,
-                            contentDescription = null,
-                            tint = PrimaryAccent,
-                            modifier = Modifier.padding(6.dp).size(18.dp)
-                        )
-                    }
-                    Column {
-                        Text( text = "Takeaway POS Terminal",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Quick Order Entry & Thermal Checkout", fontSize = 10.sp, color = TextSecondary
-                        )
-                    }
-                }
-            },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        viewModel.revertUnsavedChanges()
-                        navController.navigateUp()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
-                    }
-                },
-                actions = {
-                    if (hasPendingDecrements || hasUnprintedIncrements) {
                         OutlinedButton(
                             onClick = { viewModel.revertUnsavedChanges() },
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
@@ -126,26 +105,12 @@ fun TakeAwayScreen(navController: NavHostController) {
                         ) {
                             Icon(Icons.Default.Undo, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Revert", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text("Revert Changes", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         }
-                        Spacer(Modifier.width(8.dp))
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CardBackground),
-                modifier = Modifier.shadow(2.dp)
-            )
-        }, containerColor = SurfaceBackground
-    ) { innerPadding ->
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize().padding(innerPadding)
-        ) {
-            val isCompactScreen = maxWidth < 700.dp
+                }
 
-            Column(
-                modifier = Modifier.fillMaxSize()
-                    .then(if (isCompactScreen) Modifier.verticalScroll(rememberScrollState()) else Modifier)
-                    .padding(12.dp)
-            ) {
+
                 // PENDING DECREMENTS ALERT BANNER
                 if (hasPendingDecrements) {
                     Card(
@@ -302,7 +267,7 @@ fun TakeAwayScreen(navController: NavHostController) {
                 }
             }
         }
-    }
+
 }
 
 @Composable

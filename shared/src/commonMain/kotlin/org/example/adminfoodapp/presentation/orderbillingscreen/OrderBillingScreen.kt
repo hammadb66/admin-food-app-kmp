@@ -584,7 +584,7 @@ fun ReceiptSection(
                     val order = mapToOrderDetails(billItems, customerName, customerNumber, grandTotal)
                     println(order)
                     ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
-                    viewModel.printAndSaveOrder( isTakeAway)
+                    viewModel.printAndSaveOrder()
                 },
                 enabled = hasUnprintedIncrements && !hasPendingDecrements && isCustomerNameValid,
                 colors = ButtonDefaults.buttonColors(
@@ -617,7 +617,7 @@ fun ReceiptSection(
                 onClick = {
                     val order = mapToOrderDetails(billItems, customerName, customerNumber, grandTotal)
                     ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
-                    viewModel.checkoutAndFreeTable(isTakeAway)
+                    viewModel.checkoutAndFreeTable()
                 },
                 enabled = billItems.isNotEmpty() && !hasUnprintedIncrements && !hasPendingDecrements && isCustomerNameValid,
                 colors = ButtonDefaults.buttonColors(
@@ -636,7 +636,7 @@ fun ReceiptSection(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    if (isTakeAway) "Complete Takeaway Order" else "Checkout & Free Table",
+                    "Checkout & Free Table",
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
                     color = Color.White

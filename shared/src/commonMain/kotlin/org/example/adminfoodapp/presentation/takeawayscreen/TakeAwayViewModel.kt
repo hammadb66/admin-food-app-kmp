@@ -42,16 +42,19 @@ class TakeAwayViewModel(
     val allGeneralItem = _allGeneralItem.asStateFlow()
     private var activeOrderId: Long? = null
 
-    init {
-        getAllGeneralItem()
-        loadOrder()
-    }
-
     private val _customerName = MutableStateFlow("")
     val customerName: StateFlow<String> = _customerName.asStateFlow()
 
     private val _customerNumber = MutableStateFlow("")
     val customerNumber: StateFlow<String> = _customerNumber.asStateFlow()
+
+
+
+    init {
+        getAllGeneralItem()
+        loadOrder()
+    }
+
 
     fun changeCustomerName(name: String) {
         _customerName.value = name

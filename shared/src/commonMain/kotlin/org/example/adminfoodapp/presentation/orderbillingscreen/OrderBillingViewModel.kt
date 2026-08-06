@@ -200,7 +200,7 @@ class OrderBillingViewModel(
 
     // Print & Save (Prints Increments & New Drafts together)
 // Print & Save
-    fun printAndSaveOrder(isTakeAway: Boolean) {
+    fun printAndSaveOrder() {
 
         viewModelScope.launch {
 
@@ -211,11 +211,13 @@ class OrderBillingViewModel(
                 activeOrderId = repository.createOrder(
                     customerName = _customerName.value.ifEmpty { "Walk-in Customer" },
                     customerNumber = if (_customerNumber.value.isEmpty()) 0L else _customerNumber.value.toLong(),
-                    tableId = if (isTakeAway) null else currentTableId,
+                    tableId = currentTableId,
                     orderType = ORDERTYPE.DINEIN.id,
                     currentTimeStamp = System.currentTimeMillis()
                 )
                 observeCommittedItems(activeOrderId!!)
+            }else{
+
             }
 
             val orderId = activeOrderId!!
@@ -243,7 +245,7 @@ class OrderBillingViewModel(
     }
 
     // Checkout
-    fun checkoutAndFreeTable(isTakeAway: Boolean) {
+    fun checkoutAndFreeTable() {
         val orderId = activeOrderId ?: return
         println(activeOrderId)
 
@@ -253,7 +255,7 @@ class OrderBillingViewModel(
                 customerName = customerName.value,
                 customerNumber = customerNumber.value,
                 orderId = orderId,
-                tableId = if (isTakeAway) null else currentTableId,
+                tableId =  currentTableId,
                 finalAmount = total
             )
             // 3️⃣ UI‑side reset

@@ -80,7 +80,7 @@ val viewModelModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::UserProfileViewModel)
     viewModelOf(::SharedEditItemViewModel)
-    viewModelOf(::SharedOrderItemViewModel)
+    single { SharedOrderItemViewModel() }
     viewModelOf(::ShareUserItemViewModel)
     viewModelOf(::EditUserViewModel)
     viewModelOf(::DineInViewModel)
