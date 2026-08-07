@@ -131,7 +131,7 @@ fun OutOfDeliveryScreen(navController: NavHostController) {
                                 }
 
                                 Button(
-                                    onClick = { ReceiptPrinter.printAllOrders(list) },
+                                    onClick = { ReceiptPrinter.printAllOrders(list,"Online Orders History") },
                                     colors = ButtonDefaults.buttonColors(containerColor = BlueReport),
                                     shape = RoundedCornerShape(10.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)

@@ -6,5 +6,5 @@ enum class PrintMode { THERMAL, A4 }
 
 expect object ReceiptPrinter {
     fun printReceipt(order: OrderDetails, mode: PrintMode)
-    fun printAllOrders(orders: List<OrderDetails>)
+    fun printAllOrders(orders: List<OrderDetails>,title: String)
 }

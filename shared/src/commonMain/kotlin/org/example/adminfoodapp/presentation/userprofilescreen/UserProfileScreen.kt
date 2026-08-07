@@ -8,20 +8,23 @@ import adminfoodapp.shared.generated.resources.lock
 import adminfoodapp.shared.generated.resources.logo
 import adminfoodapp.shared.generated.resources.usernew
 import adminfoodapp.shared.generated.resources.yeonsung_regular
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -36,14 +39,22 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
+// Modern Theme Palette
+private val BackgroundColor = Color(0xFFF8FAFC)
+private val PrimaryBlue = Color(0xFF2563EB)
+private val CardBorder = Color(0xFFE2E8F0)
+private val TextMuted = Color(0xFF64748B)
+private val DangerRed = Color(0xFFEF4444)
+private val DangerRedBg = Color(0xFFFEF2F2)
+
 @Composable
 fun UserProfileScreen(navController: NavHostController) {
-
     val viewModel: UserProfileViewModel = koinViewModel()
     val currentUserState by viewModel.state.collectAsState()
     val sessionManager: SessionManager = koinInject()
     var currentPassword by remember { mutableStateOf("") }
     val currentKey = sessionManager.getCurrentUserKey()
+
     var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var admin by remember { mutableStateOf(false) }
@@ -64,16 +75,12 @@ fun UserProfileScreen(navController: NavHostController) {
                 data.name?.let { name = it }
                 data.password?.let { password = it }
                 data.password?.let { currentPassword = it }
-                data.admin?.let{admin=it}
+                data.admin?.let { admin = it }
                 data.userAccess?.let { userAccess = it }
-
-
             }
-
             is Resource.Error -> {
                 errorMessage = state.message
             }
-
             else -> {}
         }
     }
@@ -84,192 +91,324 @@ fun UserProfileScreen(navController: NavHostController) {
                 viewModel.resetValue()
                 navController.navigateUp()
             }
-
             is Resource.Error -> {
                 errorMessage = state.message
             }
-
             else -> {}
         }
     }
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundColor),
+        contentAlignment = Alignment.TopCenter
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(modifier = Modifier.height(20.dp).statusBarsPadding())
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    painter = painterResource(Res.drawable.arrow_left),
-                    contentDescription = "Back",
-                    modifier = Modifier.size(24.dp).clickable { navController.navigateUp() })
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 480.dp)
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(16.dp).statusBarsPadding())
+
+                // Profile Card Container
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, CardBorder),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(
+                            painter = painterResource(Res.drawable.logo),
+                            contentDescription = "Profile Logo",
+                            modifier = Modifier.size(80.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "Waves Of Food",
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                                fontSize = 26.sp,
+                                color = Color.Black
+                            )
+                        )
+
+                        Text(
+                            text = "Update your account details",
+                            color = TextMuted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        // Error Alert Banner
+                        errorMessage?.let { msg ->
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                color = DangerRedBg,
+                                border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.3f))
+                            ) {
+                                Text(
+                                    text = msg,
+                                    color = DangerRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(10.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // User Name Input
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Name Of User", fontSize = 13.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.usernew),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = PrimaryBlue
+                                )
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = CardBorder,
+                                focusedLabelColor = PrimaryBlue
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Password Field
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { if (it.length <= 12) password = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Password", fontSize = 13.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.lock),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = PrimaryBlue
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.eye),
+                                        contentDescription = "Toggle Visibility",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = TextMuted
+                                    )
+                                }
+                            },
+                            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = CardBorder,
+                                focusedLabelColor = PrimaryBlue
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        // Update Trigger Button
+                        Button(
+                            onClick = { showReAuthDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                        ) {
+                            Text(
+                                text = "Update Profile",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Image(
-                painter = painterResource(Res.drawable.logo), // Use profile_user
-                contentDescription = "Profile", modifier = Modifier.size(100.dp)
-            )
-
-            Text(
-                text = "X Cafe", style = MaterialTheme.typography.displaySmall.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 35.sp, color = Color.Black
-                )
-            )
-
-            Text(
-                text = "Edit Your Profile",
-                color = TextColor,
-                fontSize = 18.sp,
-                fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-            )
-            errorMessage?.let {
-                Text(text = errorMessage!!, color = Color.Red)
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Name Field
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Name Of User") },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.usernew),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                shape = RoundedCornerShape(15.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = TextColor, focusedLabelColor = TextColor
-                )
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Password Field
-            OutlinedTextField(
-                value = password,
-                onValueChange = { if (it.length <= 12) password = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Password") },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.lock),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.eye),
-                        contentDescription = "Toggle",
-                        modifier = Modifier.size(20.dp).clickable { isPasswordVisible = !isPasswordVisible })
-                },
-                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                shape = RoundedCornerShape(15.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = TextColor, focusedLabelColor = TextColor
-                )
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Update Button
-            Button(
-                onClick = {
-                    showReAuthDialog = true
-                },
-                modifier = Modifier.fillMaxWidth(0.8f).height(55.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+            // Footer Section
+            Column(
+                modifier = Modifier
+                    .padding(vertical = 24.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Update Information",
-                    color = Color.White,
-                    fontSize = 18.sp,
+                    text = "Designed & Developed by",
+                    color = TextMuted,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Hammad Baloch",
+                    color = PrimaryBlue,
+                    fontSize = 15.sp,
                     fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
                 )
             }
+        }
 
-            // Credit Text
-            Spacer(modifier = Modifier.height(60.dp))
-            Text(
-                text = "Design By\nHammad Baloch",
-                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
-                textAlign = TextAlign.Center,
-                color = TextColor,
-                fontSize = 18.sp,
-                fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-            )
-        }
-        if (currentUserState is Resource.Loading) {
-            errorMessage = null
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = TextColor)
-            }
-        }
-        if (updateState is Resource.Loading) {
-            errorMessage = null
-
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = TextColor)
-            }
-        }
-        if (showReAuthDialog) {
-            AlertDialog(onDismissRequest = {
-                errorPasswordMismatchException = null
-                reAuthPassword = ""
-                showReAuthDialog = false
-            }, title = { Text("Security Check") }, text = {
-                Column {
-                    Text("This operation requires recent authentication. Please enter your password to proceed.")
-                    errorPasswordMismatchException?.let {
-                        Text(text = errorPasswordMismatchException!!, color = Color.Red)
+        // Global Loading Overlay
+        if (currentUserState is Resource.Loading || updateState is Resource.Loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White,
+                    shadowElevation = 6.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = PrimaryBlue,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Please wait...",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Black
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = reAuthPassword,
-                        onValueChange = { reAuthPassword = it },
-                        label = { Text("Current Password") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
-            }, confirmButton = {
-                TextButton(onClick = {
-                    if (currentPassword == reAuthPassword) {
-                        viewModel.updateUser(
-                            UserModel(
-                                key = currentKey, name = name, password = password, admin = admin, userAccess = userAccess
+            }
+        }
+
+        // Security Re-Authentication Modal Dialog
+        if (showReAuthDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    errorPasswordMismatchException = null
+                    reAuthPassword = ""
+                    showReAuthDialog = false
+                },
+                shape = RoundedCornerShape(20.dp),
+                containerColor = Color.White,
+                title = {
+                    Text(
+                        text = "Security Verification",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color.Black
+                    )
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "Please confirm your current password to save these profile changes.",
+                            fontSize = 13.sp,
+                            color = TextMuted
+                        )
+
+                        errorPasswordMismatchException?.let { err ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = err,
+                                color = DangerRed,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        OutlinedTextField(
+                            value = reAuthPassword,
+                            onValueChange = { reAuthPassword = it },
+                            label = { Text("Current Password", fontSize = 12.sp) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = CardBorder
                             )
                         )
-                        errorPasswordMismatchException = null
-                        showReAuthDialog = false
-                        reAuthPassword = ""
-                    } else {
-                        errorPasswordMismatchException = "Password doesn't Match"
                     }
-
-                }) {
-                    Text("Confirm")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (currentPassword == reAuthPassword) {
+                                viewModel.updateUser(
+                                    UserModel(
+                                        key = currentKey,
+                                        name = name.trim(),
+                                        password = password,
+                                        admin = admin,
+                                        userAccess = userAccess
+                                    )
+                                )
+                                errorPasswordMismatchException = null
+                                showReAuthDialog = false
+                                reAuthPassword = ""
+                            } else {
+                                errorPasswordMismatchException = "Password does not match"
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Confirm", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            errorPasswordMismatchException = null
+                            showReAuthDialog = false
+                            reAuthPassword = ""
+                        }
+                    ) {
+                        Text("Cancel", color = TextMuted, fontWeight = FontWeight.Bold)
+                    }
                 }
-            }, dismissButton = {
-                TextButton(onClick = {
-                    errorPasswordMismatchException = null
-                    showReAuthDialog = false
-                    reAuthPassword = ""
-                }) {
-                    Text("Cancel")
-                }
-            })
+            )
         }
-
     }
 }

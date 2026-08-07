@@ -79,9 +79,9 @@ val viewModelModule = module {
     viewModelOf(::PendingViewModel)
     viewModelOf(::SplashViewModel)
     viewModelOf(::UserProfileViewModel)
-    viewModelOf(::SharedEditItemViewModel)
+    single { SharedEditItemViewModel() }
     single { SharedOrderItemViewModel() }
-    viewModelOf(::ShareUserItemViewModel)
+    single { ShareUserItemViewModel() }
     viewModelOf(::EditUserViewModel)
     viewModelOf(::DineInViewModel)
     viewModelOf(::OrderBillingViewModel)

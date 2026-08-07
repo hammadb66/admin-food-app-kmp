@@ -6,6 +6,6 @@ actual object ReceiptPrinter {
     actual fun printReceipt(order: OrderDetails, mode: PrintMode) {
     }
 
-    actual fun printAllOrders(orders: List<OrderDetails>) {
+    actual fun printAllOrders(orders: List<OrderDetails>,title: String) {
     }
 }

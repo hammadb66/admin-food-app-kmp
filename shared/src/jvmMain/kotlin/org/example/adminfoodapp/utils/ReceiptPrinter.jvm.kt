@@ -41,7 +41,7 @@ actual object ReceiptPrinter {
     }
 
     // 2. NAYA: Batch Order Print (Poori List ka Report)
-   actual fun printAllOrders(orders: List<OrderDetails>) {
+   actual fun printAllOrders(orders: List<OrderDetails>,title: String) {
         val printerJob = PrinterJob.getPrinterJob()
         val pageFormat = printerJob.defaultPage()
         val paper = pageFormat.paper
@@ -52,7 +52,7 @@ actual object ReceiptPrinter {
         pageFormat.paper = paper
 
         // List pass kar rahe hain
-        printerJob.setPrintable(AllOrdersReportPrintable(orders), pageFormat)
+        printerJob.setPrintable(AllOrdersReportPrintable(orders = orders,title=title), pageFormat)
 
         try {
             if (printerJob.printDialog()) {
@@ -99,14 +99,14 @@ class DetailedReportPrintable(private val order: OrderDetails) : Printable {
 }
 
 // BATCH REPORT DESIGN (Poori List ek saath)
-class AllOrdersReportPrintable(private val orders: List<OrderDetails>) : Printable {
+class AllOrdersReportPrintable(private val orders: List<OrderDetails>,private val title: String) : Printable {
     override fun print(graphics: Graphics?, pageFormat: PageFormat?, pageIndex: Int): Int {
         if (pageIndex > 0) return Printable.NO_SUCH_PAGE
         val g2d = graphics as Graphics2D
         g2d.translate(pageFormat?.imageableX ?: 0.0, pageFormat?.imageableY ?: 0.0)
 
         g2d.font = Font("Serif", Font.BOLD, 20)
-        g2d.drawString("DELIVERY REPORT - ALL PENDING ORDERS", 50, 50)
+        g2d.drawString(title, 50, 50)
 
         g2d.font = Font("Serif", Font.BOLD, 12)
         g2d.drawLine(50, 70, 500, 70)

@@ -209,7 +209,7 @@ fun AddItemScreen(
                             color = Color(0xFFEF4444),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(12.dp)
+                            modifier = Modifier.padding(12.dp).align(alignment = Alignment.CenterHorizontally)
                         )
                     }
                 }

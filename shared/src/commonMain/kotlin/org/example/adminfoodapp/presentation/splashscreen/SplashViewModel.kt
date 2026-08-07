@@ -25,14 +25,16 @@ class SplashViewModel(
     val state: StateFlow<Resource<UserModel>> = _state
 
     fun checkConnectionAndFetchUser() {
-        networkMonitor.register(
+        currentUser()
+
+   /*     networkMonitor.register(
             onAvailable = {
                 currentUser()
             },
             onLost = {
                 toastManager.show("No internet connection")
             }
-        )
+        )*/
     }
 
     fun currentUser() {

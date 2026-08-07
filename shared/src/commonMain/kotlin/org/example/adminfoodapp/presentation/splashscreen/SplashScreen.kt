@@ -43,26 +43,21 @@ fun SplashScreen(navController: NavHostController) {
     val viewModel: SplashViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
 
-    // UI Animation States
     val scale = remember { Animatable(0.4f) }
     val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        // Logo Zoom-in aur Fade-in animation
         launch {
             scale.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+                targetValue = 1f, animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
             )
         }
         launch {
             alpha.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 800)
+                targetValue = 1f, animationSpec = tween(durationMillis = 800)
             )
         }
 
-        // Aap ka purana API check call
         viewModel.checkConnectionAndFetchUser()
     }
 
@@ -95,34 +90,22 @@ fun SplashScreen(navController: NavHostController) {
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DarkBackground),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.fillMaxSize().background(DarkBackground), contentAlignment = Alignment.Center
     ) {
         // Background Glowing Orbs (Login Screen Se Matching)
         Box(
-            modifier = Modifier
-                .size(380.dp)
-                .offset(x = (-100).dp, y = (-70).dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color(0x55B43C14), Color.Transparent)
-                    ),
-                    shape = CircleShape
-                )
+            modifier = Modifier.size(380.dp).offset(x = (-100).dp, y = (-70).dp).background(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0x55B43C14), Color.Transparent)
+                ), shape = CircleShape
+            )
         )
         Box(
-            modifier = Modifier
-                .size(340.dp)
-                .align(Alignment.BottomEnd)
-                .offset(x = 80.dp, y = 80.dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color(0x40D4832E), Color.Transparent)
-                    ),
-                    shape = CircleShape
-                )
+            modifier = Modifier.size(340.dp).align(Alignment.BottomEnd).offset(x = 80.dp, y = 80.dp).background(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0x40D4832E), Color.Transparent)
+                ), shape = CircleShape
+            )
         )
 
         // Center Content with Zoom & Alpha Animation
@@ -130,23 +113,16 @@ fun SplashScreen(navController: NavHostController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.graphicsLayer(
-                scaleX = scale.value,
-                scaleY = scale.value,
-                alpha = alpha.value
+                scaleX = scale.value, scaleY = scale.value, alpha = alpha.value
             )
         ) {
             // Glowing Logo Container
             Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(PrimaryAccent.copy(alpha = 0.25f), Color.Transparent)
-                        ),
-                        shape = CircleShape
-                    )
-                    .border(1.dp, PrimaryAccent.copy(alpha = 0.35f), CircleShape)
-                    .padding(14.dp),
+                modifier = Modifier.size(150.dp).background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(PrimaryAccent.copy(alpha = 0.25f), Color.Transparent)
+                    ), shape = CircleShape
+                ).border(1.dp, PrimaryAccent.copy(alpha = 0.35f), CircleShape).padding(14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -159,9 +135,7 @@ fun SplashScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Way of Food",
-                color = Color(0xFFF5EDE0),
-                style = MaterialTheme.typography.titleLarge.copy(
+                text = "Way of Food", color = Color(0xFFF5EDE0), style = MaterialTheme.typography.titleLarge.copy(
                     fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
                     fontWeight = FontWeight.Bold,
                     fontSize = 40.sp
@@ -170,38 +144,27 @@ fun SplashScreen(navController: NavHostController) {
 
             // Horizontal Accent Line
             Box(
-                modifier = Modifier
-                    .padding(vertical = 10.dp)
-                    .width(70.dp)
-                    .height(2.dp)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(Color.Transparent, PrimaryAccent, Color.Transparent)
-                        )
+                modifier = Modifier.padding(vertical = 10.dp).width(70.dp).height(2.dp).background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(Color.Transparent, PrimaryAccent, Color.Transparent)
                     )
+                )
             )
 
             Text(
-                text = "Admin Dashboard",
-                color = PrimaryAccent,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                    fontSize = 24.sp
+                text = "Admin Dashboard", color = PrimaryAccent, style = MaterialTheme.typography.titleLarge.copy(
+                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 24.sp
                 )
             )
         }
 
         // Bottom Progress Indicator & Credit Text
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 32.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
-                color = PrimaryAccent,
-                strokeWidth = 2.dp
+                modifier = Modifier.size(24.dp), color = PrimaryAccent, strokeWidth = 2.dp
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -211,9 +174,7 @@ fun SplashScreen(navController: NavHostController) {
                 color = PrimaryAccent.copy(alpha = 0.7f),
                 text = "Design By\nHammad Baloch",
                 style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                    fontSize = 18.sp,
-                    lineHeight = 22.sp
+                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 18.sp, lineHeight = 22.sp
                 )
             )
         }

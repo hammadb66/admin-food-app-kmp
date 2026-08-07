@@ -1,7 +1,5 @@
 package org.example.adminfoodapp.presentation.edititemscreen
 
-import TextColor
-import adminfoodapp.shared.generated.resources.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -9,19 +7,28 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil3.compose.AsyncImage
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -29,14 +36,24 @@ import kotlinx.coroutines.launch
 import org.example.adminfoodapp.database.model.AllMenu
 import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel
 import org.example.adminfoodapp.utils.UploadState
+import adminfoodapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
-import coil3.compose.AsyncImage
+
+// Theme Colors
+private val BackgroundColor = Color(0xFFF8FAFC)
+private val PrimaryBlue = Color(0xFF2563EB)
+private val PrimaryBlueBg = Color(0xFFEFF6FF)
+private val GoldAccent = Color(0xFFD4AF37)
+private val CardBorder = Color(0xFFE2E8F0)
+private val TextMuted = Color(0xFF64748B)
 
 @Composable
-fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: SharedEditItemViewModel) {
-
+fun EditItemScreen(
+    navController: NavHostController,
+    sharedEditItemViewModel: SharedEditItemViewModel
+) {
     val previousItemState = sharedEditItemViewModel.itemToEdit.collectAsState()
     val previousItem = previousItemState.value
 
@@ -45,7 +62,6 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
     var description by remember { mutableStateOf(previousItem?.foodDescription ?: "") }
     var ingredients by remember { mutableStateOf(previousItem?.foodIngredient ?: "") }
 
-    // Category aur IsPopular states
     var selectedCategory by remember { mutableStateOf(previousItem?.category ?: "") }
     var customCategoryInput by remember { mutableStateOf("") }
     var isPopular by remember { mutableStateOf(previousItem?.isPopular ?: false) }
@@ -56,11 +72,9 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
 
     val viewModel: EditItemViewModel = koinViewModel()
     val categories by viewModel.categories.collectAsState()
-    val state by viewModel.uploadState.collectAsState()
+    val uploadState by viewModel.uploadState.collectAsState()
 
     val scrollState = rememberScrollState()
-    val goldAccent = Color(0xFFD4AF37)
-    val darkGray = Color(0xFF333333)
     val scope = rememberCoroutineScope()
 
     val singleImagePicker = rememberFilePickerLauncher(
@@ -73,313 +87,405 @@ fun EditItemScreen(navController: NavHostController, sharedEditItemViewModel: Sh
         }
     }
 
-    LaunchedEffect(state) {
-        when (state) {
+    LaunchedEffect(uploadState) {
+        when (uploadState) {
             is UploadState.Success -> {
                 viewModel.resetState()
+                sharedEditItemViewModel.clearItemToEdit()
                 navController.navigateUp()
             }
             is UploadState.Error -> {
-                errorMessage = (state as UploadState.Error).message
+                errorMessage = (uploadState as UploadState.Error).message
             }
             else -> Unit
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundColor)
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(scrollState)
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
         ) {
-            // Hero Image Section
-            Box(
-                modifier = Modifier.fillMaxWidth().height(280.dp)
+            // Top Bar
+            Spacer(modifier = Modifier.height(16.dp).statusBarsPadding())
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
-                    model = selectedImageBytes ?: imageUrl ?: Res.drawable.image_placeholder,
-                    contentDescription = "Selected Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(100.dp).background(
-                        Brush.verticalGradient(
-                            listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)
+                Surface(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable { navController.navigateUp() },
+                    color = Color.White,
+                    shadowElevation = 2.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(Res.drawable.arrow_left),
+                            contentDescription = "Back",
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.Black
                         )
+                    }
+                }
+
+                Text(
+                    text = "Edit Menu Item",
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontSize = 28.sp,
+                        color = Color.Black
                     )
                 )
 
-                Row(
-                    modifier = Modifier.padding(16.dp).statusBarsPadding(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = { navController.navigateUp() },
-                        modifier = Modifier.size(45.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                    ) {
-                        Icon(painterResource(Res.drawable.arrow_left), contentDescription = "Back", tint = Color.White)
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Text(
-                        text = "Edit Menu Item",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-                    )
-                }
-
-                Box(
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 40.dp, end = 20.dp)
-                ) {
-                    SmallFloatingActionButton(
-                        onClick = { singleImagePicker.launch() },
-                        containerColor = goldAccent,
-                        contentColor = Color.White,
-                        shape = CircleShape,
-                        modifier = Modifier.size(55.dp)
-                    ) {
-                        Icon(painterResource(Res.drawable.pluse_round), contentDescription = "Change Image")
-                    }
-                }
+                Spacer(modifier = Modifier.size(40.dp))
             }
 
-            // Form Sheet Section
-            Surface(
-                modifier = Modifier.fillMaxWidth().offset(y = (-30).dp),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                color = Color.White,
-                tonalElevation = 8.dp
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp)
+                // 1. IMAGE DISPLAY & CHANGE CARD
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { singleImagePicker.launch() },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.5.dp, if (selectedImageBytes != null) PrimaryBlue else CardBorder)
                 ) {
-                    Box(
-                        modifier = Modifier.width(50.dp).height(5.dp)
-                            .background(Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                            .align(Alignment.CenterHorizontally)
-                    )
-
-                    Spacer(modifier = Modifier.height(30.dp))
-
-                    errorMessage?.let { msg ->
-                        Text(
-                            text = msg,
-                            color = Color.Red,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(bottom = 12.dp)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AsyncImage(
+                            model = selectedImageBytes ?: imageUrl ?: Res.drawable.image_placeholder,
+                            contentDescription = "Menu Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
-                    }
 
-                    // Form Fields
-                    AddItemTextField(
-                        value = foodName,
-                        onValueChange = { foodName = it },
-                        label = "Item Name",
-                        accentColor = goldAccent
-                    )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))
+                                    )
+                                )
+                        )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    AddItemTextField(
-                        value = foodPrice,
-                        onValueChange = { foodPrice = it },
-                        label = "Price",
-                        accentColor = goldAccent,
-                        keyboardType = KeyboardType.Number
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // CATEGORY SELECTION LAZY ROW
-                    Text(
-                        text = "Select Category",
-                        color = darkGray,
-                        fontSize = 16.sp,
-                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(categories) { category ->
-                            val isSelected = selectedCategory == category
-                            Surface(
-                                modifier = Modifier.clickable {
-                                    selectedCategory = category
-                                    customCategoryInput = ""
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isSelected) goldAccent else Color(0xFFF5F5F5),
-                                border = BorderStroke(1.dp, if (isSelected) goldAccent else Color.LightGray)
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(12.dp),
+                            color = Color.White,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = category,
-                                    color = if (isSelected) Color.White else darkGray,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                                    text = if (selectedImageBytes != null) "Photo Updated" else "Change Image",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryBlue
                                 )
                             }
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // OR TYPE NEW CATEGORY
-                    OutlinedTextField(
-                        value = customCategoryInput,
-                        onValueChange = {
-                            customCategoryInput = it
-                            if (it.isNotBlank()) selectedCategory = it
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Or Type New Category") },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = goldAccent,
-                            focusedLabelColor = goldAccent
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // IS POPULAR SWITCH
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                // Error Message Alert
+                errorMessage?.let { msg ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        color = Color(0xFFFEF2F2),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFECACA))
                     ) {
                         Text(
-                            text = "Is Popular Item?",
-                            color = darkGray,
-                            fontSize = 18.sp,
-                            fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-                        )
-                        Switch(
-                            checked = isPopular,
-                            onCheckedChange = { isPopular = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = goldAccent)
+                            text = msg,
+                            color = Color(0xFFEF4444),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(12.dp)
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-                    HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
-                    Spacer(modifier = Modifier.height(20.dp))
+                // 2. CORE INFORMATION CARD
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, CardBorder)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Basic Information", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                    Text(
-                        text = "Description",
-                        color = darkGray,
-                        fontSize = 18.sp,
-                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        modifier = Modifier.fillMaxWidth().height(120.dp),
-                        placeholder = { Text("A short, elegant description") },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = goldAccent, focusedLabelColor = goldAccent
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Text(
-                        text = "Ingredients",
-                        color = darkGray,
-                        fontSize = 18.sp,
-                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular))
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    OutlinedTextField(
-                        value = ingredients,
-                        onValueChange = { ingredients = it },
-                        modifier = Modifier.fillMaxWidth().height(120.dp),
-                        placeholder = { Text("Noodle, Salad, Burger...") },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = goldAccent, focusedLabelColor = goldAccent
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(40.dp))
-
-                    // Update Item Button
-                    Button(
-                        onClick = {
-                            if (foodName.isBlank() || foodPrice.isBlank() || description.isBlank() || ingredients.isBlank() || selectedCategory.isBlank()) {
-                                errorMessage = "Please fill all fields and select a category"
-                                return@Button
-                            }
-
-                            errorMessage = null
-                            val item = AllMenu(
-                                key = previousItem?.key,
-                                foodName = foodName.trim(),
-                                foodPrice = foodPrice.trim(),
-                                foodDescription = description.trim(),
-                                foodIngredient = ingredients.trim(),
-                                foodImage = imageUrl,
-                                category = selectedCategory.trim(),
-                                isPopular = isPopular,
-                                orderCount = previousItem?.orderCount ?: 0
+                        // Item Name
+                        OutlinedTextField(
+                            value = foodName,
+                            onValueChange = { foodName = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Item Name") },
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = CardBorder
                             )
-                            sharedEditItemViewModel.clearItemToEdit()
-                            viewModel.updateMenuItem(item, selectedImageBytes)
-                        },
-                        modifier = Modifier.fillMaxWidth().height(65.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
-                        elevation = ButtonDefaults.buttonElevation(4.dp)
-                    ) {
-                        Text(
-                            text = "Update Item",
-                            fontSize = 20.sp,
-                            fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                            letterSpacing = 1.sp
                         )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Price
+                        OutlinedTextField(
+                            value = foodPrice,
+                            onValueChange = { foodPrice = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Price (Rs)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = CardBorder
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Category Selection Title
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryBlue)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Category", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Category Chips Scroll
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(categories) { category ->
+                                val isSelected = selectedCategory == category
+                                Surface(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            selectedCategory = category
+                                            customCategoryInput = ""
+                                        },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) PrimaryBlue else Color(0xFFF1F5F9),
+                                    border = BorderStroke(1.dp, if (isSelected) PrimaryBlue else CardBorder)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (isSelected) {
+                                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                        }
+                                        Text(
+                                            text = category,
+                                            color = if (isSelected) Color.White else Color.DarkGray,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Custom Category Input
+                        OutlinedTextField(
+                            value = customCategoryInput,
+                            onValueChange = {
+                                customCategoryInput = it
+                                if (it.isNotBlank()) selectedCategory = it
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Or Type New Category") },
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = CardBorder
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 3. ATTRIBUTES & DETAILS CARD
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, CardBorder)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Item Details & Badging", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Is Popular Switch Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFFFFBEB), RoundedCornerShape(12.dp))
+                                .border(1.dp, Color(0xFFFDE68A), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Mark as Popular Item", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                    Text("Highlight on customer home screen", fontSize = 10.sp, color = TextMuted)
+                                }
+                            }
+                            Switch(
+                                checked = isPopular,
+                                onCheckedChange = { isPopular = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = GoldAccent
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Description
+                        OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            label = { Text("Description") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = CardBorder
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Ingredients
+                        OutlinedTextField(
+                            value = ingredients,
+                            onValueChange = { ingredients = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(90.dp),
+                            label = { Text("Ingredients") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = CardBorder
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // UPDATE BUTTON
+                Button(
+                    onClick = {
+                        if (foodName.isBlank() || foodPrice.isBlank() || description.isBlank() || ingredients.isBlank() || selectedCategory.isBlank()) {
+                            errorMessage = "Please fill all fields and select a category"
+                            return@Button
+                        }
+
+                        errorMessage = null
+                        val item = AllMenu(
+                            key = previousItem?.key,
+                            foodName = foodName.trim(),
+                            foodPrice = foodPrice.trim(),
+                            foodDescription = description.trim(),
+                            foodIngredient = ingredients.trim(),
+                            foodImage = imageUrl,
+                            category = selectedCategory.trim(),
+                            isPopular = isPopular,
+                            orderCount = previousItem?.orderCount ?: 0
+                        )
+                        viewModel.updateMenuItem(item, selectedImageBytes)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Update Menu Item",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+
+        // Loading Overlay
+        if (uploadState is UploadState.Loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(color = PrimaryBlue)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Saving Changes...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             }
         }
-
-        if (state is UploadState.Loading) {
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = TextColor)
-            }
-        }
     }
-}
-@Composable
-fun AddItemTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    accentColor: Color,
-    keyboardType: KeyboardType = KeyboardType.Text
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        label = { Text(label) },
-        shape = RoundedCornerShape(14.dp),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = accentColor, focusedLabelColor = accentColor
-        )
-    )
 }

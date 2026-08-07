@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.example.adminfoodapp.database.OrderItemsEntity
 import org.example.adminfoodapp.database.OrdersEntity
 import org.example.adminfoodapp.database.VoidLogsEntity
@@ -29,6 +30,7 @@ class OrderHistoryViewModel(
 
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
+
 
     init {
         loadHistoryData()
@@ -95,24 +97,53 @@ class OrderHistoryViewModel(
     }
 
     fun printBulkReport() {
-        val currentOrders = _uiState.value.orders
+        val currentState = _uiState.value
 
-        if (currentOrders.isNotEmpty()) {
-            // Yahan hum Database model ko Printer model mein 'Map' kar rahe hain
-            val printableOrders = currentOrders.map { order ->
-                OrderDetails(
-                    userName = order.customerName,
-                    totalPrice = order.totalAmount.toString(),
-                    phoneNumber = "", // Bulk report mein ye zaruri nahi
-                    address = "",
-                    foodName = emptyList(),
-                    foodQuantity = emptyList(),
-                    foodPrice = emptyList()
-                )
+        if (currentState.selectedTab == 0) {
+            // 0 = Normal Orders Tab
+            val currentOrders = currentState.orders
+
+            if (currentOrders.isNotEmpty()) {
+                val printableOrders = currentOrders.map { order ->
+                    val orderItems = orderItems(order.id)
+                    OrderDetails(
+                        userName = order.customerName,
+                        totalPrice = order.totalAmount.toString(),
+                        phoneNumber = order.customerNumber.toString(),
+                        address = "",
+                        foodName = orderItems.map { it.itemName },
+                        foodQuantity = orderItems.map { it.printedQuantity.toInt() },
+                        foodPrice = orderItems.map { it.price.toString() },
+                    )
+                }
+                ReceiptPrinter.printAllOrders(printableOrders,"Completed Order History")
             }
+        } else {
+            // 1 = Void Orders Tab
+            val currentVoidLogs = currentState.voidLogs
 
-            // Ab hum Printer ko wohi format bhej rahe hain jo wo maang raha hai
-            ReceiptPrinter.printAllOrders(printableOrders)
+            if (currentVoidLogs.isNotEmpty()) {
+                val printableVoidOrders = currentVoidLogs.map { voidLog ->
+                    val list = orderItems(voidLog.orderId)
+                    OrderDetails(
+                        userName = voidLog.voidedByName,
+                        totalPrice = voidLog.unitPrice.toString(),
+                        phoneNumber = voidLog.reason,
+                        address = "",
+                        foodName = list.map { it.itemName },
+                        foodQuantity = list.map { it.quantity.toInt() },
+                        foodPrice = list.map { it.price.toString() },
+                    )
+                }
+                ReceiptPrinter.printAllOrders(printableVoidOrders,"Cancels Order History")
+            }
+        }
+    }
+
+
+    fun orderItems(id: Long): List<OrderItemsEntity> {
+        return runBlocking {
+            repository.getOrderItemsForReprint(id)
         }
     }
 

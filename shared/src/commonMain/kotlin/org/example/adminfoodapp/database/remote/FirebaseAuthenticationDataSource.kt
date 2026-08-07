@@ -28,8 +28,6 @@ class FirebaseAuthenticationDataSource(driverFactory: DriverFactory,
 
 
     init {
-        // 🔥 First Time App Auto-Admin Setup:
-        // Agar naye Laptop/MSI par DB khali hoga toh default admin create kar dega!
         seedDefaultAdminIfEmpty()
     }
 

@@ -9,11 +9,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.example.adminfoodapp.domain.usecase.GetCategoriesUseCase
+import org.example.adminfoodapp.utils.NetworkMonitor
 import org.example.adminfoodapp.utils.Resource
+import org.example.adminfoodapp.utils.ToastManager
 
 class AddItemViewModel(
     private val addMenuUseCase: AddMenuUseCase,
-    private val getCategoriesUseCase: GetCategoriesUseCase
+    private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val networkMonitor: NetworkMonitor,
+    private val toastManager: ToastManager
 ) : ViewModel() {
 
     private val _uploadState = MutableStateFlow<UploadState>(UploadState.Idle)
@@ -23,20 +27,30 @@ class AddItemViewModel(
 
 
     init {
-        fetchCategories()
+        checkInterNetConnection()
     }
 
+    fun checkInterNetConnection() {
+        networkMonitor.register(onAvailable = {
+            fetchCategories()
+        }, onLost = {
+            _uploadState.value = UploadState.Error("Check your internet connection")
+            toastManager.show("No internet connection")
+        })
+    }
 
     fun fetchCategories() {
 
         viewModelScope.launch {
-            getCategoriesUseCase.invoke().collect {state->
-                when(state){
+            getCategoriesUseCase.invoke().collect { state ->
+                when (state) {
                     is Resource.Loading -> {
                     }
+
                     is Resource.Success -> {
                         _categories.value = state.data
                     }
+
                     is Resource.Error -> {}
                 }
 
@@ -54,8 +68,7 @@ class AddItemViewModel(
 
             _uploadState.value = result.fold(
                 onSuccess = { UploadState.Success },
-                onFailure = { UploadState.Error(it.message ?: "Upload failed") }
-            )
+                onFailure = { UploadState.Error(it.message ?: "Upload failed") })
         }
     }
 
