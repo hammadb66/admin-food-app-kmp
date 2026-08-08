@@ -161,7 +161,7 @@ class OrderBillingViewModel(
 
     // Confirm Batch Decrement / Cancellation Reason
 // Confirm Batch Decrement / Cancellation Reason
-    fun confirmBatchVoid(reason: String) {
+    fun confirmBatchVoid(reason: String,tableNumber: String) {
         val orderId = activeOrderId ?: return
         viewModelScope.launch {
             val voidItems = mutableListOf<VoidLogBatchItem>()
@@ -183,7 +183,7 @@ class OrderBillingViewModel(
 
             if (voidItems.isNotEmpty()) {
                 // 👈 1. Pass currentTableId to repository
-                repository.processBatchVoid(orderId, currentTableId, voidItems, reason, decreasedItemsMap)
+                repository.processBatchVoid("Dine-In $tableNumber[$customerName]",orderId, currentTableId, voidItems, reason, decreasedItemsMap)
 
                 // 👈 2. Check if all items in UI were deleted (workingQuantity == 0)
                 val remainingItemsCount = _billItems.value.count { it.workingQuantity > 0 }

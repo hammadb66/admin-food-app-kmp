@@ -51,7 +51,8 @@
         reason TEXT NOT NULL DEFAULT 'Item Cancelled',
         createdAt INTEGER NOT NULL,
         voidByID INTEGER NOT NULL DEFAULT 0,
-        voidedByName TEXT NOT NULL DEFAULT 'Admin'
+        voidedByName TEXT NOT NULL DEFAULT 'Admin',
+        customerName TEXT NOT NULL DEFAULT 'NOT SPECIFIED'
     );
 
 
@@ -146,8 +147,8 @@ CREATE TABLE UserEntity (
 
     -- Save Void Audit Entry
     insertVoidLog:
-    INSERT INTO VoidLogsEntity(orderId, itemName, cancelledQuantity, unitPrice, reason, createdAt,voidByID,voidedByName)
-    VALUES (?, ?, ?, ?, ?, ?,?,?);
+    INSERT INTO VoidLogsEntity(orderId, itemName, cancelledQuantity, unitPrice, reason, createdAt,voidByID,voidedByName,customerName)
+    VALUES (?, ?, ?, ?, ?, ?,?,?,?);
 
     -- Owner Audit Report Query (Daily Cancellations)
     getDailyVoidLogs:

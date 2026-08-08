@@ -49,7 +49,6 @@ class TakeAwayViewModel(
     val customerNumber: StateFlow<String> = _customerNumber.asStateFlow()
 
 
-
     init {
         getAllGeneralItem()
         loadOrder()
@@ -183,7 +182,9 @@ class TakeAwayViewModel(
 
             if (voidItems.isNotEmpty()) {
                 // 👈 1. Pass currentTableId to repository
-                repository.processBatchVoid(orderId, 0L, voidItems, reason, decreasedItemsMap)
+                repository.processBatchVoid(
+                    "Take Away[$customerName]", orderId, 0L, voidItems, reason, decreasedItemsMap
+                )
 
                 // 👈 2. Check if all items in UI were deleted (workingQuantity == 0)
                 val remainingItemsCount = _billItems.value.count { it.workingQuantity > 0 }

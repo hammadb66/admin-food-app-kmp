@@ -2,8 +2,7 @@ package org.example.adminfoodapp.database.model
 
 import kotlinx.serialization.Serializable
 
-@Serializable
-
+@Serializable   
 data class AllMenu(
     val key: String? = null,
     val foodName: String? = null,

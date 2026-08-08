@@ -99,34 +99,107 @@ class DetailedReportPrintable(private val order: OrderDetails) : Printable {
 }
 
 // BATCH REPORT DESIGN (Poori List ek saath)
-class AllOrdersReportPrintable(private val orders: List<OrderDetails>,private val title: String) : Printable {
+class AllOrdersReportPrintable(
+    private val orders: List<OrderDetails>,
+    private val title: String
+) : Printable {
+
     override fun print(graphics: Graphics?, pageFormat: PageFormat?, pageIndex: Int): Int {
-        if (pageIndex > 0) return Printable.NO_SUCH_PAGE
-        val g2d = graphics as Graphics2D
-        g2d.translate(pageFormat?.imageableX ?: 0.0, pageFormat?.imageableY ?: 0.0)
+        val g2d = graphics as? Graphics2D ?: return Printable.NO_SUCH_PAGE
 
-        g2d.font = Font("Serif", Font.BOLD, 20)
-        g2d.drawString(title, 50, 50)
+        // Page Margin / Printable Area setup
+        val marginX = pageFormat?.imageableX ?: 50.0
+        val marginY = pageFormat?.imageableY ?: 50.0
+        g2d.translate(marginX, marginY)
 
-        g2d.font = Font("Serif", Font.BOLD, 12)
-        g2d.drawLine(50, 70, 500, 70)
-        g2d.drawString("Customer Name", 60, 85)
-        g2d.drawString("Total Price", 400, 85)
-        g2d.drawLine(50, 95, 500, 95)
+        val pageHeight = (pageFormat?.imageableHeight ?: 700.0).toInt()
+        val maxY = pageHeight - 50 // Bottom margin cutoff
 
-        var y = 115
-        g2d.font = Font("Serif", Font.PLAIN, 12)
+        // Track Current Page and Y-position across orders
+        var currentPage = 0
+        var y = 50
 
-        for (order in orders) {
-            g2d.drawString(order.userName.toString(), 60, y)
-            g2d.drawString("Rs ${order.totalPrice}", 400, y)
+        // Function to draw Header on top of every page
+        fun drawHeader() {
+            g2d.font = Font("Serif", Font.BOLD, 18)
+            g2d.drawString(title, 20, y)
+            y += 25
+
+            g2d.font = Font("Serif", Font.BOLD, 11)
+            g2d.drawLine(20, y, 500, y)
+            y += 15
+
+            g2d.drawString("Customer Name / Items", 20, y)
+            g2d.drawString("Qty", 320, y)
+            g2d.drawString("Price", 380, y)
+            g2d.drawString("Total", 450, y)
+            y += 10
+
+            g2d.drawLine(20, y, 500, y)
             y += 20
-
-            // Agar page khatam hone lage to yahan break lag sakta hai
-            if (y > 750) break
         }
 
-        g2d.drawLine(50, y, 500, y)
-        return Printable.PAGE_EXISTS
+        // Draw header for the starting calculation of current rendering
+        drawHeader()
+
+        for (order in orders) {
+            // Predict if this whole order header will fit on the page
+            if (y + 40 > maxY) {
+                currentPage++
+                y = 50
+                if (currentPage == pageIndex) {
+                    drawHeader()
+                }
+            }
+
+            // Draw Order Header (Only if rendering current requested page)
+            if (currentPage == pageIndex) {
+                g2d.font = Font("Serif", Font.BOLD, 12)
+                g2d.drawString("Order: ${order.userName ?: "Guest"} (${order.phoneNumber ?: "N/A"})", 20, y)
+                g2d.drawString("Rs ${order.totalPrice ?: "0"}", 450, y)
+                y += 18
+            }
+
+            // Draw Sub-items (Foods list)
+            val items = order.foodName ?: emptyList()
+            val quantities = order.foodQuantity ?: emptyList()
+            val prices = order.foodPrice ?: emptyList()
+
+            for (i in items.indices) {
+                // Check page limit for each item row
+                if (y + 20 > maxY) {
+                    currentPage++
+                    y = 50
+                    if (currentPage == pageIndex) {
+                        drawHeader()
+                    }
+                }
+
+                if (currentPage == pageIndex) {
+                    val itemName = items.getOrNull(i) ?: ""
+                    val qty = quantities.getOrNull(i) ?: 1
+                    val price = prices.getOrNull(i) ?: "0"
+
+                    g2d.font = Font("Serif", Font.PLAIN, 11)
+                    g2d.drawString("- $itemName", 40, y)
+                    g2d.drawString("x$qty", 320, y)
+                    g2d.drawString("Rs $price", 380, y)
+                    y += 16
+                }
+            }
+
+            // Draw separator line between orders
+            if (currentPage == pageIndex) {
+                g2d.drawLine(20, y, 500, y)
+                y += 15
+            }
+        }
+
+        // Return Page Status based on requested pageIndex
+        return if (pageIndex <= currentPage) {
+            Printable.PAGE_EXISTS
+        } else {
+            Printable.NO_SUCH_PAGE
+        }
     }
 }

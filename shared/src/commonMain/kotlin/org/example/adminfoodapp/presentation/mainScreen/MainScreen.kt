@@ -50,6 +50,7 @@ import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
 import org.example.adminfoodapp.utils.MainActivityUiState
 import org.example.adminfoodapp.utils.ORDERTYPE
 import org.example.adminfoodapp.utils.SessionManager
+import org.example.adminfoodapp.utils.isDesktopPlatform
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -285,13 +286,16 @@ fun ResponsiveSidebarSection(
     currentTab: DashboardTab, onTabSelected: (DashboardTab) -> Unit, onLogoutClick: () -> Unit, username: String
 ) {
     var isExpanded by remember { mutableStateOf(true) }
+    if (!isDesktopPlatform()){
+        isExpanded=false
+    }
 
     val sidebarWidth by animateDpAsState(
         targetValue = if (isExpanded) 260.dp else 80.dp, animationSpec = spring(stiffness = Spring.StiffnessLow)
     )
 
     // Icons ki bajaye Short Codes define kiye hain
-    val menuItems = listOf(
+    val allMenuItems = listOf(
         SidebarMenuItem("Dashboard", "DB", DashboardTab.DASHBOARD_HOME),
         SidebarMenuItem("Takeaway POS", "POS", DashboardTab.TAKEAWAY_BILLING),
         SidebarMenuItem("Dine-In Tables", "DT", DashboardTab.DINE_IN_TABLES),
@@ -305,6 +309,15 @@ fun ResponsiveSidebarSection(
         SidebarMenuItem("Sub Users", "SU", DashboardTab.SUB_USERS)
     )
 
+    val menuItems = remember {
+        if (!isDesktopPlatform()) {
+            allMenuItems.filter { item ->
+                item.targetTab != DashboardTab.TAKEAWAY_BILLING && item.targetTab != DashboardTab.DINE_IN_TABLES && item.targetTab != DashboardTab.GENERAL_HISTORY && item.targetTab != DashboardTab.GENERAL_ITEM
+            }
+        } else {
+            allMenuItems
+        }
+    }
     Column(
         modifier = Modifier.width(sidebarWidth).fillMaxHeight().background(SidebarBackground)
             .border(width = 1.dp, color = CardBorderColor).padding(12.dp).verticalScroll(rememberScrollState()),
@@ -353,7 +366,7 @@ fun ResponsiveSidebarSection(
                 }
 
                 IconButton(
-                    onClick = { isExpanded = !isExpanded }, modifier = Modifier.size(28.dp)
+                    onClick = { isExpanded = !isExpanded }, modifier = Modifier.size(28.dp), enabled = isDesktopPlatform()
                 ) {
                     Icon(
                         imageVector = if (isExpanded) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
@@ -450,8 +463,7 @@ fun DashboardHomeContent(
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp)
-    )
-    {
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -509,8 +521,7 @@ fun DashboardHomeContent(
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         OnlinePendingOrdersCard(
                             orders = onlineOrders, modifier = Modifier.weight(1f)
@@ -526,8 +537,7 @@ fun DashboardHomeContent(
                     }
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         SpecificPendingOrdersCard(
                             title = "Pending Dine-In Orders",
@@ -541,22 +551,6 @@ fun DashboardHomeContent(
                     }
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SpecificPendingOrdersCard(
-                title = "Pending Dine-In Orders",
-                orders = dineInPending,
-                badgeColor = PrimaryAccent,
-                bgColor = PrimaryAccentLight,
-                modifier = Modifier.weight(1f)
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
         }
 
         Spacer(modifier = Modifier.height(30.dp))
@@ -709,7 +703,7 @@ fun OnlinePendingOrdersCard(orders: List<OrderDetails>, modifier: Modifier = Mod
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            "Rs. ${item.totalPrice ?: "0"}",
+                            item.totalPrice ?: "0",
                             color = Color(0xFF2563EB),
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -720,6 +714,7 @@ fun OnlinePendingOrdersCard(orders: List<OrderDetails>, modifier: Modifier = Mod
         }
     }
 }
+
 @Composable
 fun SpecificPendingOrdersCard(
     title: String, orders: List<QuickPendingOrder>, badgeColor: Color, bgColor: Color, modifier: Modifier = Modifier

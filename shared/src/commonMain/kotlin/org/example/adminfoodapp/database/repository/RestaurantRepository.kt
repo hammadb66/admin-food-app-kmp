@@ -256,7 +256,7 @@
         }
 
         // Process Batch Void Log & Apply Decrements in DB
-        fun processBatchVoid(
+        fun processBatchVoid(customerName: String,
             orderId: Long, tableId: Long, // 👈 1. Pass tableId here
             voidItems: List<VoidLogBatchItem>, reason: String, decreasedItemsMap: Map<Long, Int>
         ) {
@@ -272,7 +272,8 @@
                         reason = reason.ifBlank { "Customer Cancelled / Decreased" },
                         createdAt = timeStamp,
                         voidByID = sessionManager.getCurrentUserKey().toString().toLong(),
-                        voidedByName = sessionManager.getCurrentUserName()
+                        voidedByName = sessionManager.getCurrentUserName(),
+                        customerName=customerName
                     )
                 }
 

@@ -116,7 +116,7 @@ class OrderHistoryViewModel(
                         foodPrice = orderItems.map { it.price.toString() },
                     )
                 }
-                ReceiptPrinter.printAllOrders(printableOrders,"Completed Order History")
+                ReceiptPrinter.printAllOrders(printableOrders, "Completed Order History")
             }
         } else {
             // 1 = Void Orders Tab
@@ -124,21 +124,22 @@ class OrderHistoryViewModel(
 
             if (currentVoidLogs.isNotEmpty()) {
                 val printableVoidOrders = currentVoidLogs.map { voidLog ->
-                    val list = orderItems(voidLog.orderId)
                     OrderDetails(
-                        userName = voidLog.voidedByName,
-                        totalPrice = voidLog.unitPrice.toString(),
-                        phoneNumber = voidLog.reason,
+                        userName = voidLog.customerName,
+                        totalPrice = totalVoid(voidLog.unitPrice.toInt(), voidLog.cancelledQuantity.toInt()).toString(),
+                        phoneNumber = "user:${voidLog.voidedByName} Reason:${voidLog.reason}",
                         address = "",
-                        foodName = list.map { it.itemName },
-                        foodQuantity = list.map { it.quantity.toInt() },
-                        foodPrice = list.map { it.price.toString() },
+                        foodName = listOf(voidLog.itemName),
+                        foodQuantity = listOf(voidLog.cancelledQuantity.toInt()),
+                        foodPrice = listOf(voidLog.unitPrice.toString()),
                     )
                 }
-                ReceiptPrinter.printAllOrders(printableVoidOrders,"Cancels Order History")
+                ReceiptPrinter.printAllOrders(printableVoidOrders, "Cancels Order History")
             }
         }
     }
+
+    fun totalVoid(a: Int, b: Int) = a * b
 
 
     fun orderItems(id: Long): List<OrderItemsEntity> {

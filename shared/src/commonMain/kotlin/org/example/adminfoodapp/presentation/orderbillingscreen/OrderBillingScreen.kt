@@ -50,7 +50,6 @@ private val TextPrimary = Color(0xFF0F172A)
 private val TextSecondary = Color(0xFF64748B)
 private val CardBorderColor = Color(0xFFE2E8F0)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderBillingScreen(args: NavRoutes.OrderBillingScreen, navController: NavHostController) {
     val viewModel: OrderBillingViewModel = koinViewModel()
@@ -82,7 +81,7 @@ fun OrderBillingScreen(args: NavRoutes.OrderBillingScreen, navController: NavHos
     if (showBatchVoidDialog) {
         BatchVoidReasonDialog(
             decreasedItems = pendingDecrementsList,
-            onConfirm = { reason -> viewModel.confirmBatchVoid(reason) },
+            onConfirm = { reason -> viewModel.confirmBatchVoid(reason,args.number) },
             onDismiss = { viewModel.closeBatchVoidDialog() }
         )
     }

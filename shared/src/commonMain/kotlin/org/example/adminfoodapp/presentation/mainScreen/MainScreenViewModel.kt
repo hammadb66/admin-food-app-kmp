@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.example.adminfoodapp.database.model.OrderDetails
@@ -33,8 +33,7 @@ class MainScreenViewModel(
     private val _onlinePendingOrders = MutableStateFlow<List<OrderDetails>>(emptyList())
     val onlinePendingOrders: StateFlow<List<OrderDetails>> = _onlinePendingOrders.asStateFlow()
 
-    private val _onlineEarnings = MutableStateFlow(0)
-    private val _onlineCompleteCount = MutableStateFlow(0)
+    private val _onlineCompleteOrders = MutableStateFlow<List<OrderDetails>>(emptyList())
 
     init {
         fetchAllData()
@@ -46,68 +45,63 @@ class MainScreenViewModel(
     }
 
     private fun fetchAllData() {
+        // 1. Fetch Online Completed Orders
         viewModelScope.launch {
-            launch { fetchOnlineCompleteOrders() }
-            launch { fetchOnlinePendingOrders() }
-            launch { fetchLocalPendingOrders() }
+            getCompleteOrderUseCase.invoke().collect { resource ->
+                if (resource is Resource.Success) {
+                    // Double filter khatam kar diya
+                    _onlineCompleteOrders.value = resource.data.filter { it.orderCancel == false }
+                }
+            }
         }
-    }
 
-    private suspend fun fetchOnlineCompleteOrders() {
-        getCompleteOrderUseCase.invoke().collect { resource ->
-            if (resource is Resource.Success) {
-                // FIX 1: Sirf un orders ko filter karein jo cancel NAHI hue
-                val validCompleteOrders = resource.data.filter { it.orderCancel == false }
+        // 2. Fetch Online Pending Orders
+        viewModelScope.launch {
+            getPendingOrderUseCase.invoke().collect { resource ->
+                if (resource is Resource.Success) {
+                    _onlinePendingOrders.value = resource.data
+                }
+            }
+        }
 
-                _onlineEarnings.value = totalEarningCollection(validCompleteOrders)
-                _onlineCompleteCount.value = validCompleteOrders.size
+        // 3. Fetch Local Pending Orders
+        viewModelScope.launch {
+            restaurantRepository.getRealPendingOrders().collect { localOrders ->
+                _localPendingOrders.value = localOrders
             }
         }
     }
 
-    private suspend fun fetchOnlinePendingOrders() {
-        getPendingOrderUseCase.invoke().collect { resource ->
-            if (resource is Resource.Success) {
-                _onlinePendingOrders.value = resource.data
-            }
-        }
-    }
-
-    private suspend fun fetchLocalPendingOrders() {
-        restaurantRepository.getRealPendingOrders().collect { localOrders ->
-            _localPendingOrders.value = localOrders
-        }
-    }
-
-    // Dynamic Reactive Flow Combination
+    // Combined Reactive Flow
     private fun observeCombinedAnalytics() {
         viewModelScope.launch {
             combine(
                 restaurantRepository.getDashboardAnalytics(),
-                _onlineEarnings,
-                _onlineCompleteCount,
+                _onlineCompleteOrders,
                 _onlinePendingOrders,
                 _localPendingOrders
-            ) { localAnalytics, onlineEarning, onlineComplete, onlinePendingList, localPendingList ->
+            ) { localAnalytics, onlineCompleteList, onlinePendingList, localPendingList ->
+
+                val onlineEarning = totalEarningCollection(onlineCompleteList)
 
                 MainActivityUiState(
                     totalOnlineEarnings = onlineEarning,
                     totalLocalEarnings = localAnalytics.totalLocalEarnings,
-                    onlineCompleteOrders = onlineComplete,
+                    onlineCompleteOrders = onlineCompleteList.size,
                     localCompleteOrders = localAnalytics.localCompleteOrders,
                     onlinePendingOrders = onlinePendingList.size,
                     localPendingOrders = localPendingList.size,
                     isLoading = false
                 )
-            }.collectLatest { combinedState ->
+            }.collect { combinedState ->
                 _uiState.value = combinedState
             }
         }
     }
 
+    // Fast & Safe String parsing
     private fun totalEarningCollection(data: List<OrderDetails>): Int {
-        val price = data.filter { it.orderCancel == false }
-        return price.sumOf { order ->
+        return data.sumOf { order ->
             order.totalPrice?.filter { it.isDigit() }?.toIntOrNull() ?: 0
         }
     }
