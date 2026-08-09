@@ -11,3 +11,7 @@ enum class TABLESTATUS(val id :Long) {
 enum class ORDERTYPE(val id :Long) {
     DINEIN(0L),TAKEAWAY(1)
 }
+
+enum class DISCOUNTTYPE (val id :Long) {
+    PERCENTAGE(0L),AMOUNT(1)
+}

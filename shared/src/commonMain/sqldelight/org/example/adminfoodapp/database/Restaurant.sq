@@ -15,18 +15,22 @@
     );
 
     -- 3. Main Orders Table (Dine-In + Takeaway + History)
-    CREATE TABLE OrdersEntity (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tableId INTEGER,
-        customerName TEXT NOT NULL,
-        customerNumber INTEGER NOT NULL,
-        orderType INTEGER NOT NULL,
-        totalAmount REAL NOT NULL DEFAULT 0.0,
-        orderStatus INTEGER NOT NULL DEFAULT 0,
-        createdAt INTEGER NOT NULL,
-        createdByID INTEGER NOT NULL DEFAULT 0,
-        createdByName TEXT NOT NULL DEFAULT 'Admin'
-    );
+CREATE TABLE OrdersEntity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tableId INTEGER,
+    customerName TEXT NOT NULL,
+    customerNumber INTEGER NOT NULL,
+    orderType INTEGER NOT NULL,
+    subtotal REAL NOT NULL DEFAULT 0.0,
+    discountType INTEGER NOT NULL DEFAULT 0,
+    discountValue REAL NOT NULL DEFAULT 0.0,
+    discountAmount REAL NOT NULL DEFAULT 0.0,
+    totalAmount REAL NOT NULL DEFAULT 0.0,
+    orderStatus INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    createdByID INTEGER NOT NULL DEFAULT 0,
+    createdByName TEXT NOT NULL DEFAULT 'Admin'
+);
 
     -- 4. Order Detail Items Entity
     CREATE TABLE OrderItemsEntity (
@@ -132,7 +136,8 @@ CREATE TABLE UserEntity (
 
     -- Checkout Queries
     completeOrder:
-    UPDATE OrdersEntity SET orderStatus = 1, totalAmount = ? WHERE id = ?;
+    UPDATE OrdersEntity
+    SET orderStatus = 1,  subtotal = :subtotal,discountType = :discountType,discountValue = :discountValue,discountAmount = :discountAmount,totalAmount = :totalAmount WHERE id = :id;
 
     -- History & Filtering Queries
     getOrdersHistoryByDateRange:

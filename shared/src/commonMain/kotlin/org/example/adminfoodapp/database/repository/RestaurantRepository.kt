@@ -171,14 +171,28 @@
         // Complete Order & Free Table
     // Complete Order & Free Table
         fun checkoutOrder(
-            customerName: String, customerNumber: String, orderId: Long, tableId: Long?, finalAmount: Double
+            customerName: String,
+            customerNumber: String,
+            orderId: Long,
+            tableId: Long?,
+            subtotal: Double,
+            discountType: Long,
+            discountValue: Double,
+            discountAmount: Double,
+            finalAmount: Double
         ) {
-            val phoneNumber = customerNumber.toLongOrNull() ?: 0L   // ✅ crash-proof
+            val phoneNumber = customerNumber.toLongOrNull() ?: 0L
 
-            dbQueries.updateOrderCustomerInfo(customerName = customerName, customerNumber = phoneNumber,id=orderId )
-            dbQueries.completeOrder(finalAmount, orderId)
+            dbQueries.updateOrderCustomerInfo(customerName = customerName, customerNumber = phoneNumber, id = orderId)
+            dbQueries.completeOrder(
+                subtotal = subtotal,
+                discountType = discountType,
+                discountValue = discountValue,
+                discountAmount = discountAmount,
+                totalAmount = finalAmount,
+                id = orderId
+            )
 
-            // Agar Table ID majood thi toh hi AVAILABLE mark karo
             if (tableId != null && tableId > 0) {
                 dbQueries.updateTableStatus(0, tableId)
             }
@@ -287,13 +301,19 @@
                     }
                 }
 
-                // 👈 3. CHECK IF ORDER IS NOW EMPTY
                 val remainingItems = dbQueries.getOrderItemsForOrder(orderId).executeAsList()
                 if (remainingItems.isEmpty()) {
                     // Table ko wapas Green / AVAILABLE kar do!
                     dbQueries.updateTableStatus(0, tableId)
-                    // Empty order ko finish/close kar do
-                    dbQueries.completeOrder(0.0, orderId)
+                    // Empty order ko finish/close kar do — sab discount fields 0 rakho kyunke order khali hai
+                    dbQueries.completeOrder(
+                        subtotal = 0.0,
+                        discountType = 0L,
+                        discountValue = 0.0,
+                        discountAmount = 0.0,
+                        totalAmount = 0.0,
+                        id = orderId
+                    )
                 }
             }
         }

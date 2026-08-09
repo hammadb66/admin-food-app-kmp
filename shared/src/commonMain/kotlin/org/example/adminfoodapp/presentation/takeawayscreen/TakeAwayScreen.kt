@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import org.example.adminfoodapp.database.GenralItemsEntity
 import org.example.adminfoodapp.database.model.OrderDetails
+import org.example.adminfoodapp.database.model.PrintOrderDetails
+import org.example.adminfoodapp.presentation.orderbillingscreen.CheckoutDiscountDialog
+import org.example.adminfoodapp.utils.DISCOUNTTYPE
 import org.example.adminfoodapp.utils.PrintMode
 import org.example.adminfoodapp.utils.ReceiptPrinter
 import org.example.adminfoodapp.utils.Resource
@@ -54,9 +57,12 @@ fun TakeAwayScreen(navController: NavHostController) {
     val billItems by viewModel.billItems.collectAsState()
     val generalItem by viewModel.allGeneralItem.collectAsState()
     val showBatchVoidDialog by viewModel.showBatchVoidDialog.collectAsState()
+    var showCheckoutDialog by remember { mutableStateOf(false) }
 
     val customerName by viewModel.customerName.collectAsState()
     val customerNumber by viewModel.customerNumber.collectAsState()
+    val discountType by viewModel.discountType.collectAsState()
+    val discountInput by viewModel.discountInput.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
@@ -66,6 +72,8 @@ fun TakeAwayScreen(navController: NavHostController) {
     val isCustomerNameValid = customerName.isNotBlank()
 
     val grandTotal = billItems.sumOf { it.price * it.workingQuantity }
+    val discountAmount = viewModel.calculateDiscountAmount(grandTotal)
+    val finalTotal = grandTotal - discountAmount
     val hasUnprintedIncrements = billItems.any { it.unprintedIncrement > 0 }
     val pendingDecrementsList = billItems.filter { it.pendingDecrement > 0 }
     val hasPendingDecrements = pendingDecrementsList.isNotEmpty()
@@ -76,6 +84,34 @@ fun TakeAwayScreen(navController: NavHostController) {
             onConfirm = { reason -> viewModel.confirmBatchVoid(reason) },
             onDismiss = { viewModel.closeBatchVoidDialog() })
     }
+    if (showCheckoutDialog) {
+        CheckoutDiscountDialog(
+            subtotal = grandTotal,
+            discountType = discountType,
+            discountInput = discountInput,
+            discountAmount = discountAmount,
+            finalTotal = finalTotal,
+            onDiscountTypeChange = { viewModel.setDiscountType(it) },
+            onDiscountInputChange = { viewModel.updateDiscountInput(it) },
+            onConfirm = {
+                val discountLabel = if (discountType == DISCOUNTTYPE.PERCENTAGE) "$discountInput%" else "Flat Rs.$discountInput"
+                val order = mapToOrderDetails(
+                    billItems, customerName, customerNumber,
+                    subtotal = grandTotal,
+                    discountLabel = discountLabel,
+                    discountAmount = discountAmount,
+                    finalTotal = finalTotal
+                )
+                ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
+                viewModel.checkoutAndFreeTable()
+                showCheckoutDialog = false
+            },
+            onDismiss = { showCheckoutDialog = false }
+        )
+    }
+
+
+
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -83,8 +119,7 @@ fun TakeAwayScreen(navController: NavHostController) {
 
         Column(
             modifier = Modifier.fillMaxSize()
-                .then(if (isCompactScreen) Modifier.verticalScroll(rememberScrollState()) else Modifier)
-                .padding(12.dp)
+                .then(if (isCompactScreen) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(12.dp)
         ) {
 
 
@@ -229,20 +264,26 @@ fun TakeAwayScreen(navController: NavHostController) {
                     ReceiptSection(
                         billItems = billItems,
                         grandTotal = grandTotal,
+                        discountType = discountType,
+                        discountInput = discountInput,
+                        discountAmount = discountAmount,
+                        finalTotal = finalTotal,
+                        onDiscountTypeChange = { viewModel.setDiscountType(it) },
+                        onDiscountInputChange = { viewModel.updateDiscountInput(it) },
                         hasUnprintedIncrements = hasUnprintedIncrements,
                         hasPendingDecrements = hasPendingDecrements,
                         isCustomerNameValid = isCustomerNameValid,
                         customerName = customerName,
                         customerNumber = customerNumber,
                         viewModel = viewModel,
+                        onCheckoutClick = { showCheckoutDialog = true },
                         isCompact = true,
                         modifier = Modifier.fillMaxWidth().height(360.dp)
                     )
                 }
             } else {
                 Row(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     MenuCatalogSection(
                         searchQuery = searchQuery,
@@ -254,12 +295,19 @@ fun TakeAwayScreen(navController: NavHostController) {
                     ReceiptSection(
                         billItems = billItems,
                         grandTotal = grandTotal,
+                        discountType = discountType,
+                        discountInput = discountInput,
+                        discountAmount = discountAmount,
+                        finalTotal = finalTotal,
+                        onDiscountTypeChange = { viewModel.setDiscountType(it) },
+                        onDiscountInputChange = { viewModel.updateDiscountInput(it) },
                         hasUnprintedIncrements = hasUnprintedIncrements,
                         hasPendingDecrements = hasPendingDecrements,
                         isCustomerNameValid = isCustomerNameValid,
                         customerName = customerName,
                         customerNumber = customerNumber,
                         viewModel = viewModel,
+                        onCheckoutClick = { showCheckoutDialog = true },
                         isCompact = false,
                         modifier = Modifier.weight(1f).fillMaxHeight()
                     )
@@ -393,9 +441,16 @@ fun MenuCatalogSection(
 fun ReceiptSection(
     billItems: List<BillItemUiState>,
     grandTotal: Double,
+    discountType: DISCOUNTTYPE,
+    discountInput: String,
+    discountAmount: Double,
+    finalTotal: Double,
+    onDiscountTypeChange: (DISCOUNTTYPE) -> Unit,
+    onDiscountInputChange: (String) -> Unit,
     hasUnprintedIncrements: Boolean,
     hasPendingDecrements: Boolean,
     isCustomerNameValid: Boolean,
+    onCheckoutClick: () -> Unit,   // 👈 naya
     customerName: String,
     customerNumber: String,
     viewModel: TakeAwayViewModel,
@@ -477,6 +532,33 @@ fun ReceiptSection(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = CardBorderColor)
 
             // GRAND TOTAL SECTION
+            /*   Surface(
+                   color = Color(0xFFF1F5F9),
+                   shape = RoundedCornerShape(10.dp),
+                   modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+               ) {
+                   Row(
+                       modifier = Modifier.padding(10.dp).fillMaxWidth(),
+                       horizontalArrangement = Arrangement.SpaceBetween,
+                       verticalAlignment = Alignment.CenterVertically
+                   ) {
+                       Column(modifier = Modifier.weight(1f, fill = false)) {
+                           Text("Grand Total", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+                           Text("Incl. taxes", fontSize = 9.sp, color = TextSecondary)
+                       }
+                       Spacer(Modifier.width(6.dp))
+                       Text(
+                           "Rs. ${grandTotal.toInt()}",
+                           fontSize = 16.sp,
+                           fontWeight = FontWeight.Bold,
+                           color = PrimaryAccent,
+                           maxLines = 1,
+                           softWrap = false
+                       )
+                   }
+               }*/
+
+            // SIMPLE TOTAL — discount ab checkout dialog mein dikhega
             Surface(
                 color = Color(0xFFF1F5F9),
                 shape = RoundedCornerShape(10.dp),
@@ -487,26 +569,66 @@ fun ReceiptSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f, fill = false)) {
-                        Text("Grand Total", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
-                        Text("Incl. taxes", fontSize = 9.sp, color = TextSecondary)
-                    }
-                    Spacer(Modifier.width(6.dp))
+                    Text("Grand Total", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Text(
                         "Rs. ${grandTotal.toInt()}",
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryAccent,
-                        maxLines = 1,
-                        softWrap = false
+                        color = PrimaryAccent
                     )
                 }
             }
 
+            // BILL BREAKDOWN — Subtotal / Discount / Final Total
+            Surface(
+                color = Color(0xFFF1F5F9),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Subtotal", fontSize = 12.sp, color = TextSecondary)
+                        Text("Rs. ${grandTotal.toInt()}", fontSize = 12.sp, color = TextPrimary)
+                    }
+
+                    if (discountAmount > 0) {
+                        Spacer(Modifier.height(4.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            val label =
+                                if (discountType == DISCOUNTTYPE.PERCENTAGE) "Discount (${discountInput}%)" else "Discount (Flat)"
+                            Text(label, fontSize = 12.sp, color = GoldAccent)
+                            Text(
+                                "- Rs. ${discountAmount.toInt()}",
+                                fontSize = 12.sp,
+                                color = GoldAccent,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+                    HorizontalDivider(color = CardBorderColor)
+                    Spacer(Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Grand Total", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text(
+                            "Rs. ${finalTotal.toInt()}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryAccent
+                        )
+                    }
+                }
+            }
             // PRINT BUTTON
             Button(
                 onClick = {
-                    // 👈 Bas Yahan badlaaw kiya hai: mapToOrderDetailsForKOT use kar rahe hain
                     val kotOrder = mapToOrderDetailsForKOT(billItems, customerName, customerNumber)
                     ReceiptPrinter.printReceipt(kotOrder, PrintMode.THERMAL)
                     viewModel.printAndSaveOrder()
@@ -536,9 +658,7 @@ fun ReceiptSection(
             // CHECKOUT BUTTON
             Button(
                 onClick = {
-                    val order = mapToOrderDetails(billItems, customerName, customerNumber, grandTotal)
-                    ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
-                    viewModel.checkoutAndFreeTable()
+                    onCheckoutClick()
                 },
                 enabled = billItems.isNotEmpty() && !hasUnprintedIncrements && !hasPendingDecrements && isCustomerNameValid,
                 colors = ButtonDefaults.buttonColors(
@@ -556,10 +676,7 @@ fun ReceiptSection(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "Complete Takeaway Order",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = Color.White
+                    "Complete Takeaway Order", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White
                 )
             }
         }
@@ -754,37 +871,40 @@ fun BillItemRow(
 }
 
 fun mapToOrderDetails(
-    billItems: List<BillItemUiState>, customerName: String, customerNumber: String, grandTotal: Double
-): OrderDetails {
-    return OrderDetails(
+    billItems: List<BillItemUiState>,
+    customerName: String,
+    customerNumber: String,
+    subtotal: Double,
+    discountLabel: String,
+    discountAmount: Double,
+    finalTotal: Double
+): PrintOrderDetails {   // 👈 OrderDetails se PrintOrderDetails
+    return PrintOrderDetails(   // 👈 yahan bhi
         userName = customerName,
         phoneNumber = customerNumber,
         address = "N/A",
         foodName = billItems.map { it.itemName },
         foodQuantity = billItems.map { it.workingQuantity },
         foodPrice = billItems.map { it.price.toString() },
-        totalPrice = grandTotal.toString()
+        totalPrice = finalTotal.toInt().toString(),
+        subtotal = subtotal.toInt().toString(),
+        discountLabel = discountLabel,
+        discountAmount = discountAmount.toInt().toString()
     )
 }
 
-
-// Sirf Unprinted/New items ki KOT Slip ke liye Mapper
 fun mapToOrderDetailsForKOT(
-    billItems: List<BillItemUiState>,
-    customerName: String,
-    customerNumber: String
-): OrderDetails {
-    // 1. Sirf wo items filter karo jinki unprinted count > 0 hai
+    billItems: List<BillItemUiState>, customerName: String, customerNumber: String
+): PrintOrderDetails {   // 👈 yahan bhi
     val unprintedItems = billItems.filter { it.unprintedIncrement > 0 }
 
     val names = unprintedItems.map { it.itemName }
-    val quantities = unprintedItems.map { it.unprintedIncrement } // 👈 Sirf NAYI quantity (Delta)
+    val quantities = unprintedItems.map { it.unprintedIncrement }
     val prices = unprintedItems.map { it.price.toString() }
 
-    // Total price calculate karo sirf unprinted items ka
     val kotTotal = unprintedItems.sumOf { it.price * it.unprintedIncrement }
 
-    return OrderDetails(
+    return PrintOrderDetails(   // 👈 yahan bhi
         userName = customerName.ifEmpty { "Takeaway Guest" },
         phoneNumber = customerNumber,
         foodName = names,

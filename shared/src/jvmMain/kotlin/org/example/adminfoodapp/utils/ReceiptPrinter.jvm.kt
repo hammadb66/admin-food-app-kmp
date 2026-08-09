@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.example.adminfoodapp.database.model.OrderDetails
+import org.example.adminfoodapp.database.model.PrintOrderDetails
 import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
@@ -15,7 +16,7 @@ actual object ReceiptPrinter {
     private val printScope = CoroutineScope(Dispatchers.IO)
 
     // 1. Single Order Print (Thermal ya A4)
-    actual fun printReceipt(order: OrderDetails, mode: PrintMode) {
+    actual fun printReceipt(order: PrintOrderDetails, mode: PrintMode) {
         printScope.launch {
             try {
                 val printerJob = PrinterJob.getPrinterJob()
@@ -51,7 +52,7 @@ actual object ReceiptPrinter {
     }
 
     // 2. Batch Order Print (Poori List ka Report)
-    actual fun printAllOrders(orders: List<OrderDetails>, title: String) {
+    actual fun printAllOrders(orders: List<PrintOrderDetails>, title: String) {
         printScope.launch {
             try {
                 val printerJob = PrinterJob.getPrinterJob()
@@ -79,7 +80,7 @@ actual object ReceiptPrinter {
 // -------------------------------------------------------------
 // 1. THERMAL RECEIPT DESIGN (Small Paper 80mm)
 // -------------------------------------------------------------
-class ThermalReceiptPrintable(private val order: OrderDetails) : Printable {
+class ThermalReceiptPrintable(private val order: PrintOrderDetails) : Printable {
     override fun print(graphics: Graphics?, pageFormat: PageFormat?, pageIndex: Int): Int {
         if (pageIndex > 0) return Printable.NO_SUCH_PAGE
         val g2d = graphics as? Graphics2D ?: return Printable.NO_SUCH_PAGE
@@ -142,7 +143,18 @@ class ThermalReceiptPrintable(private val order: OrderDetails) : Printable {
         g2d.drawString("--------------------------------", 5, y)
         y += 14
 
-        // Grand Total
+// Subtotal & Discount (agar discount hai to hi dikhega)
+        g2d.font = Font("Monospaced", Font.PLAIN, 9)
+        if (!order.subtotal.isNullOrBlank()) {
+            g2d.drawString("Subtotal: Rs ${order.subtotal}", 5, y)
+            y += 12
+        }
+        if (!order.discountAmount.isNullOrBlank() && order.discountAmount != "0") {
+            g2d.drawString("Discount (${order.discountLabel ?: ""}): -Rs ${order.discountAmount}", 5, y)
+            y += 12
+        }
+
+// Grand Total
         val grandTotal = order.totalPrice?.toDoubleOrNull()?.toInt() ?: order.totalPrice ?: "0"
         g2d.font = Font("Monospaced", Font.BOLD, 11)
         g2d.drawString("TOTAL: Rs $grandTotal", 5, y)
@@ -162,7 +174,7 @@ class ThermalReceiptPrintable(private val order: OrderDetails) : Printable {
 // -------------------------------------------------------------
 // 2. SINGLE DETAILED A4 INVOICE DESIGN
 // -------------------------------------------------------------
-class DetailedReportPrintable(private val order: OrderDetails) : Printable {
+class DetailedReportPrintable(private val order: PrintOrderDetails) : Printable {
     override fun print(graphics: Graphics?, pageFormat: PageFormat?, pageIndex: Int): Int {
         if (pageIndex > 0) return Printable.NO_SUCH_PAGE
         val g2d = graphics as? Graphics2D ?: return Printable.NO_SUCH_PAGE
@@ -221,8 +233,22 @@ class DetailedReportPrintable(private val order: OrderDetails) : Printable {
 
         y += 10
         g2d.drawLine(40, y, 520, y)
-        y += 25
+        y += 20
 
+// Subtotal & Discount rows (agar available hain)
+        g2d.font = Font("Serif", Font.PLAIN, 12)
+        if (!order.subtotal.isNullOrBlank()) {
+            g2d.drawString("Subtotal:", 350, y)
+            g2d.drawString("Rs ${order.subtotal}", 460, y)
+            y += 18
+        }
+        if (!order.discountAmount.isNullOrBlank() && order.discountAmount != "0") {
+            g2d.drawString("Discount (${order.discountLabel ?: ""}):", 350, y)
+            g2d.drawString("-Rs ${order.discountAmount}", 460, y)
+            y += 18
+        }
+
+        y += 5
         g2d.font = Font("Serif", Font.BOLD, 14)
         g2d.drawString("Grand Total:", 350, y)
         g2d.drawString("Rs ${order.totalPrice ?: "0"}", 460, y)
@@ -235,7 +261,7 @@ class DetailedReportPrintable(private val order: OrderDetails) : Printable {
 // 3. BATCH REPORT DESIGN
 // -------------------------------------------------------------
 class AllOrdersReportPrintable(
-    private val orders: List<OrderDetails>,
+    private val orders: List<PrintOrderDetails>,
     private val title: String
 ) : Printable {
 
@@ -286,7 +312,16 @@ class AllOrdersReportPrintable(
                 g2d.font = Font("Serif", Font.BOLD, 12)
                 g2d.drawString("Order: ${order.userName ?: "Guest"} (${order.phoneNumber ?: "N/A"})", 20, y)
                 g2d.drawString("Rs ${order.totalPrice ?: "0"}", 450, y)
-                y += 18
+                y += 16
+
+                // Chhoti si discount line (agar hai to hi)
+                if (!order.discountAmount.isNullOrBlank() && order.discountAmount != "0") {
+                    g2d.font = Font("Serif", Font.ITALIC, 10)
+                    g2d.drawString("  (Subtotal: Rs${order.subtotal} - Discount: Rs${order.discountAmount})", 20, y)
+                    y += 14
+                } else {
+                    y += 2
+                }
             }
 
             val items = order.foodName ?: emptyList()

@@ -4,12 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.example.adminfoodapp.database.OrderItemsEntity
 import org.example.adminfoodapp.database.OrdersEntity
 import org.example.adminfoodapp.database.VoidLogsEntity
-import org.example.adminfoodapp.database.model.OrderDetails
+import org.example.adminfoodapp.database.model.PrintOrderDetails
 import org.example.adminfoodapp.database.repository.RestaurantRepository
+import org.example.adminfoodapp.utils.DISCOUNTTYPE
 import org.example.adminfoodapp.utils.PrintMode
 import org.example.adminfoodapp.utils.ReceiptPrinter
 import java.util.Calendar
@@ -81,72 +81,86 @@ class OrderHistoryViewModel(
         }
     }
 
-    // 2. Single Order Bill Print
+    // Helper — discount label banane ke liye (jaise "10%" ya "Flat Rs.100")
+    // Real life: ye jaise purani rasid dekh ke customer ko batana "bhai isme itna % discount tha"
+    private fun buildDiscountLabel(order: OrdersEntity): String {
+        return if (order.discountType == DISCOUNTTYPE.PERCENTAGE.id) {
+            "${order.discountValue.toInt()}%"
+        } else {
+            "Flat Rs.${order.discountValue.toInt()}"
+        }
+    }
+
+    // 2. Single Order Bill Print (History se dobara print)
     fun printSingleOrder(order: OrdersEntity, items: List<OrderItemsEntity>) {
-        val orderDetails = OrderDetails(
+        val orderDetails = PrintOrderDetails(
             userName = order.customerName,
             phoneNumber = order.customerNumber.toString(),
             address = "N/A",
             foodName = items.map { it.itemName },
             foodQuantity = items.map { it.quantity.toInt() },
             foodPrice = items.map { it.price.toString() },
-            totalPrice = order.totalAmount.toString()
+            totalPrice = order.totalAmount.toString(),
+            subtotal = order.subtotal.toInt().toString(),
+            discountLabel = buildDiscountLabel(order),
+            discountAmount = order.discountAmount.toInt().toString()
         )
 
         ReceiptPrinter.printReceipt(orderDetails, PrintMode.A4)
     }
 
+    // 👈 runBlocking hataya — ab poori function ek background coroutine ke andar chalti hai
+    // Real life: pehle counter (UI) ruk jata tha jab tak godown se saman na aaye,
+    // ab counter chalta rehta hai jabke godown wala bunda alag se kaam karta hai
     fun printBulkReport() {
-        val currentState = _uiState.value
+        viewModelScope.launch {
+            val currentState = _uiState.value
 
-        if (currentState.selectedTab == 0) {
-            // 0 = Normal Orders Tab
-            val currentOrders = currentState.orders
+            if (currentState.selectedTab == 0) {
+                // 0 = Normal Orders Tab
+                val currentOrders = currentState.orders
 
-            if (currentOrders.isNotEmpty()) {
-                val printableOrders = currentOrders.map { order ->
-                    val orderItems = orderItems(order.id)
-                    OrderDetails(
-                        userName = order.customerName,
-                        totalPrice = order.totalAmount.toString(),
-                        phoneNumber = order.customerNumber.toString(),
-                        address = "",
-                        foodName = orderItems.map { it.itemName },
-                        foodQuantity = orderItems.map { it.printedQuantity.toInt() },
-                        foodPrice = orderItems.map { it.price.toString() },
-                    )
+                if (currentOrders.isNotEmpty()) {
+                    val printableOrders = currentOrders.map { order ->
+                        val orderItems = repository.getOrderItemsForReprint(order.id) // 👈 seedha suspend call
+                        PrintOrderDetails(
+                            userName = order.customerName,
+                            totalPrice = order.totalAmount.toString(),
+                            phoneNumber = order.customerNumber.toString(),
+                            address = "",
+                            foodName = orderItems.map { it.itemName },
+                            foodQuantity = orderItems.map { it.printedQuantity.toInt() },
+                            foodPrice = orderItems.map { it.price.toString() },
+                            subtotal = order.subtotal.toInt().toString(),
+                            discountLabel = buildDiscountLabel(order),
+                            discountAmount = order.discountAmount.toInt().toString()
+                        )
+                    }
+                    ReceiptPrinter.printAllOrders(printableOrders, "Completed Order History")
                 }
-                ReceiptPrinter.printAllOrders(printableOrders, "Completed Order History")
-            }
-        } else {
-            // 1 = Void Orders Tab
-            val currentVoidLogs = currentState.voidLogs
+            } else {
+                // 1 = Void Orders Tab
+                val currentVoidLogs = currentState.voidLogs
 
-            if (currentVoidLogs.isNotEmpty()) {
-                val printableVoidOrders = currentVoidLogs.map { voidLog ->
-                    OrderDetails(
-                        userName = voidLog.customerName,
-                        totalPrice = totalVoid(voidLog.unitPrice.toInt(), voidLog.cancelledQuantity.toInt()).toString(),
-                        phoneNumber = "user:${voidLog.voidedByName} Reason:${voidLog.reason}",
-                        address = "",
-                        foodName = listOf(voidLog.itemName),
-                        foodQuantity = listOf(voidLog.cancelledQuantity.toInt()),
-                        foodPrice = listOf(voidLog.unitPrice.toString()),
-                    )
+                if (currentVoidLogs.isNotEmpty()) {
+                    val printableVoidOrders = currentVoidLogs.map { voidLog ->
+                        PrintOrderDetails(
+                            userName = voidLog.customerName,
+                            totalPrice = totalVoid(voidLog.unitPrice.toInt(), voidLog.cancelledQuantity.toInt()).toString(),
+                            phoneNumber = "user:${voidLog.voidedByName} Reason:${voidLog.reason}",
+                            address = "",
+                            foodName = listOf(voidLog.itemName),
+                            foodQuantity = listOf(voidLog.cancelledQuantity.toInt()),
+                            foodPrice = listOf(voidLog.unitPrice.toString()),
+                        )
+                    }
+                    ReceiptPrinter.printAllOrders(printableVoidOrders, "Cancels Order History")
                 }
-                ReceiptPrinter.printAllOrders(printableVoidOrders, "Cancels Order History")
             }
         }
     }
 
     fun totalVoid(a: Int, b: Int) = a * b
-
-
-    fun orderItems(id: Long): List<OrderItemsEntity> {
-        return runBlocking {
-            repository.getOrderItemsForReprint(id)
-        }
-    }
 
     private fun getStartAndEndOfDay(millis: Long): Pair<Long, Long> {
         val calendar = Calendar.getInstance().apply {

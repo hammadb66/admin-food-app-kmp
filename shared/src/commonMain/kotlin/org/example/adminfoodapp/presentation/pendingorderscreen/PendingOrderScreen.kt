@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import org.example.adminfoodapp.database.model.OrderDetails
+import org.example.adminfoodapp.database.model.PrintOrderDetails
 import org.example.adminfoodapp.navigaiton.NavRoutes
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
 import org.example.adminfoodapp.utils.PrintMode
@@ -56,21 +57,16 @@ private val BlueReportBg = Color(0xFFEFF6FF)
 
 @Composable
 fun PendingOrderScreen(
-    navController: NavHostController,
-    sharedOrderItemViewModel: SharedOrderItemViewModel
+    navController: NavHostController, sharedOrderItemViewModel: SharedOrderItemViewModel
 ) {
     val viewModel: PendingViewModel = koinViewModel()
     val orderState by viewModel.state.collectAsState()
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
+        modifier = Modifier.fillMaxSize().background(BackgroundColor)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
         ) {
 
             // Top Header Bar
@@ -83,9 +79,7 @@ fun PendingOrderScreen(
                 // Dynamic Count Badge
                 val pendingCount = (orderState as? Resource.Success)?.data?.size ?: 0
                 Surface(
-                    color = BlueReportBg,
-                    shape = RoundedCornerShape(12.dp),
-                    tonalElevation = 10.dp
+                    color = BlueReportBg, shape = RoundedCornerShape(12.dp), tonalElevation = 10.dp
                 ) {
                     Text(
                         text = "$pendingCount New",
@@ -111,8 +105,7 @@ fun PendingOrderScreen(
 
                     if (list.isEmpty()) {
                         Box(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
-                            contentAlignment = Alignment.Center
+                            modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "No New Online Orders Found",
@@ -128,31 +121,24 @@ fun PendingOrderScreen(
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             items(
-                                items = list,
-                                key = { order -> order.itemPushKey ?: order.hashCode() }
-                            ) { order ->
+                                items = list, key = { order -> order.itemPushKey ?: order.hashCode() }) { order ->
                                 Box(modifier = Modifier.animateItem()) {
-                                    PendingOrderItemCard(
-                                        order = order,
-                                        onClick = {
-                                            sharedOrderItemViewModel.setOrderItem(order)
-                                            navController.navigate(NavRoutes.OrderDetailsScreen)
-                                        },
-                                        onDispatch = {
-                                            viewModel.orderDispatch(order)
-                                            ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
-                                        },
-                                        onAccept = {
-                                            viewModel.orderAccepted(order)
-                                            ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
-                                        },
-                                        onCancel = {
-                                            viewModel.cancelOrder(order)
-                                        },
-                                        onCancelConfirm = {
-                                            viewModel.cancelConfirm(order)
-                                        }
-                                    )
+
+                                    PendingOrderItemCard(order = order, onClick = {
+                                        sharedOrderItemViewModel.setOrderItem(order)
+                                        navController.navigate(NavRoutes.OrderDetailsScreen)
+                                    }, onDispatch = {
+                                        viewModel.orderDispatch(order)
+
+                                        ReceiptPrinter.printReceipt(order.toPrintOrderDetails(), PrintMode.THERMAL)
+                                    }, onAccept = {
+                                        viewModel.orderAccepted(order)
+                                        ReceiptPrinter.printReceipt(order.toPrintOrderDetails(), PrintMode.THERMAL)
+                                    }, onCancel = {
+                                        viewModel.cancelOrder(order)
+                                    }, onCancelConfirm = {
+                                        viewModel.cancelConfirm(order)
+                                    })
                                 }
                             }
                         }
@@ -179,10 +165,7 @@ fun PendingOrderItemCard(
     onCancelConfirm: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, CardBorder),
@@ -199,8 +182,7 @@ fun PendingOrderItemCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        color = BlueDispatchBg,
-                        shape = RoundedCornerShape(8.dp)
+                        color = BlueDispatchBg, shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             text = "ONLINE ORDER",
@@ -224,10 +206,7 @@ fun PendingOrderItemCard(
                 }
 
                 Text(
-                    text = statusText,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = statusColor
+                    text = statusText, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = statusColor
                 )
             }
 
@@ -238,9 +217,7 @@ fun PendingOrderItemCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    modifier = Modifier.size(65.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFF1F5F9)
+                    modifier = Modifier.size(65.dp), shape = RoundedCornerShape(12.dp), color = Color(0xFFF1F5F9)
                 ) {
                     Image(
                         painter = painterResource(Res.drawable.logo),
@@ -265,9 +242,7 @@ fun PendingOrderItemCard(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = "Total Amount",
-                        fontSize = 11.sp,
-                        color = Color.Gray
+                        text = "Total Amount", fontSize = 11.sp, color = Color.Gray
                     )
 
                     Text(
@@ -280,8 +255,7 @@ fun PendingOrderItemCard(
             }
 
             HorizontalDivider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = CardBorder
+                modifier = Modifier.padding(vertical = 12.dp), color = CardBorder
             )
 
             // Bottom Action Buttons with Icons
@@ -298,8 +272,7 @@ fun PendingOrderItemCard(
                 }
             } else {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val isAccepted = order.orderAccepted == true
 
@@ -342,7 +315,7 @@ fun PendingOrderItemCard(
 
                     // Print Thermal Receipt Button
                     Button(
-                        onClick = { ReceiptPrinter.printReceipt(order, PrintMode.THERMAL) },
+                        onClick = { ReceiptPrinter.printReceipt(order.toPrintOrderDetails(), PrintMode.THERMAL) },
                         modifier = Modifier.weight(0.9f).height(38.dp),
                         shape = RoundedCornerShape(10.dp),
                         contentPadding = PaddingValues(0.dp),
@@ -375,8 +348,7 @@ fun OrderTimeBadge(orderTimeMillis: Long) {
     }
 
     Surface(
-        color = badgeBg,
-        shape = RoundedCornerShape(8.dp)
+        color = badgeBg, shape = RoundedCornerShape(8.dp)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
@@ -397,4 +369,17 @@ fun OrderTimeBadge(orderTimeMillis: Long) {
             )
         }
     }
+}
+
+
+fun OrderDetails.toPrintOrderDetails(): PrintOrderDetails {
+    return PrintOrderDetails(
+        userName = this.userName,
+        phoneNumber = this.phoneNumber,
+        address = this.address,
+        foodName = this.foodName,
+        foodQuantity = this.foodQuantity,
+        foodPrice = this.foodPrice,
+        totalPrice = this.totalPrice
+    )
 }

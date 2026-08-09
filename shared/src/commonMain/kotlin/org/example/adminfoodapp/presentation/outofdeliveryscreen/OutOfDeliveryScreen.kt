@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import org.example.adminfoodapp.database.model.OrderDetails
+import org.example.adminfoodapp.database.model.PrintOrderDetails
 import org.example.adminfoodapp.utils.PrintMode
 import org.example.adminfoodapp.utils.ReceiptPrinter
 import org.example.adminfoodapp.utils.Resource
@@ -131,7 +132,7 @@ fun OutOfDeliveryScreen(navController: NavHostController) {
                                 }
 
                                 Button(
-                                    onClick = { ReceiptPrinter.printAllOrders(list,"Online Orders History") },
+                                    onClick = { ReceiptPrinter.printAllOrders(list.map { it.toPrintOrderDetails() },"Online Orders History") },
                                     colors = ButtonDefaults.buttonColors(containerColor = BlueReport),
                                     shape = RoundedCornerShape(10.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
@@ -299,7 +300,10 @@ fun DeliveryItemCard(order: OrderDetails) {
 
                 // Single Thermal Receipt Printing Button
                 Button(
-                    onClick = { ReceiptPrinter.printReceipt(order, PrintMode.THERMAL) },
+                    onClick = {
+
+
+                        ReceiptPrinter.printReceipt(order.toPrintOrderDetails(), PrintMode.THERMAL) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isCancelled) RedCancelled else Color(0xFF0F172A)
                     ),
@@ -323,4 +327,16 @@ fun DeliveryItemCard(order: OrderDetails) {
             }
         }
     }
+}
+
+fun OrderDetails.toPrintOrderDetails(): PrintOrderDetails {
+    return PrintOrderDetails(
+        userName = this.userName,
+        phoneNumber = this.phoneNumber,
+        address = this.address,
+        foodName = this.foodName,
+        foodQuantity = this.foodQuantity,
+        foodPrice = this.foodPrice,
+        totalPrice = this.totalPrice
+    )
 }

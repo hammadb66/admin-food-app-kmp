@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
+import org.example.adminfoodapp.database.model.PrintOrderDetails
+import org.example.adminfoodapp.presentation.pendingorderscreen.toPrintOrderDetails
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
 import org.example.adminfoodapp.utils.PrintMode
 import org.example.adminfoodapp.utils.ReceiptPrinter
@@ -61,7 +63,7 @@ fun OrderDetailsScreen(navController: NavHostController, sharedOrderItemViewMode
                 IconButton(
                     onClick = {
                         orderItem?.let { order ->
-                            ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
+                            ReceiptPrinter.printReceipt(order.toPrintOrderDetails(), PrintMode.THERMAL)
                         }
                     }
                 ) {

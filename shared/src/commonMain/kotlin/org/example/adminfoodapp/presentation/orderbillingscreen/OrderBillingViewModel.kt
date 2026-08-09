@@ -8,6 +8,7 @@ import org.example.adminfoodapp.database.GenralItemsEntity
 import org.example.adminfoodapp.database.OrderItemsEntity
 import org.example.adminfoodapp.database.repository.RestaurantRepository
 import org.example.adminfoodapp.database.repository.VoidLogBatchItem
+import org.example.adminfoodapp.utils.DISCOUNTTYPE
 import org.example.adminfoodapp.utils.ORDERTYPE
 import org.example.adminfoodapp.utils.Resource
 
@@ -45,15 +46,21 @@ class OrderBillingViewModel(
     private var currentTableId: Long = 0L
     private var activeOrderId: Long? = null
 
-    init {
-        getAllGeneralItem()
-    }
-
     private val _customerName = MutableStateFlow("")
     val customerName: StateFlow<String> = _customerName.asStateFlow()
 
     private val _customerNumber = MutableStateFlow("")
     val customerNumber: StateFlow<String> = _customerNumber.asStateFlow()
+
+    private val _discountType = MutableStateFlow(DISCOUNTTYPE.PERCENTAGE)
+    val discountType: StateFlow<DISCOUNTTYPE> = _discountType.asStateFlow()
+
+    private val _discountInput = MutableStateFlow("")
+    val discountInput: StateFlow<String> = _discountInput.asStateFlow()
+    init {
+        getAllGeneralItem()
+    }
+
 
     fun changeCustomerName(name: String) {
         _customerName.value = name
@@ -63,6 +70,23 @@ class OrderBillingViewModel(
         _customerNumber.value = number
     }
 
+    fun setDiscountType(type: DISCOUNTTYPE) {
+        _discountType.value = type
+        _discountInput.value = ""   // switch badalte hi purani value reset — warna confusion hoga
+    }
+
+    fun updateDiscountInput(value: String) {
+        _discountInput.value = value
+    }
+
+    // Ye "dimaag" hai — subtotal lekar discount ka Rupee amount nikalta hai
+    fun calculateDiscountAmount(subtotal: Double): Double {
+        val rawValue = _discountInput.value.toDoubleOrNull() ?: 0.0
+        return when (_discountType.value) {
+            DISCOUNTTYPE.PERCENTAGE -> subtotal * (rawValue.coerceIn(0.0, 100.0) / 100.0)
+            DISCOUNTTYPE.AMOUNT -> rawValue.coerceIn(0.0, subtotal)
+        }
+    }
     fun loadTableOrder(tableId: Long) {
         currentTableId = tableId
         viewModelScope.launch {
@@ -250,13 +274,20 @@ class OrderBillingViewModel(
         println(activeOrderId)
 
         viewModelScope.launch {
-            val total = _billItems.value.sumOf { it.price * it.workingQuantity }
+            val subtotal = _billItems.value.sumOf { it.price * it.workingQuantity }
+            val discountAmount = calculateDiscountAmount(subtotal)
+            val finalTotal = subtotal - discountAmount
+
             repository.checkoutOrder(
                 customerName = customerName.value,
                 customerNumber = customerNumber.value,
                 orderId = orderId,
                 tableId =  currentTableId,
-                finalAmount = total
+                subtotal = subtotal,
+                discountType = _discountType.value.id,
+                discountValue = _discountInput.value.toDoubleOrNull() ?: 0.0,
+                discountAmount = discountAmount,
+                finalAmount = finalTotal
             )
             // 3️⃣ UI‑side reset
             resetAfterCheckout()
@@ -265,17 +296,13 @@ class OrderBillingViewModel(
         }
     }
 
-    /** Reset all UI‑state after a successful checkout */
     private fun resetAfterCheckout() {
-        // UI list ko khali karo
         _billItems.value = emptyList()
-        // Customer info reset (optional – agar aap chahte ho)
         _customerName.value = ""
         _customerNumber.value = ""
-        // Active order id ko null set karo – next time naya order create hoga
+        _discountType.value = DISCOUNTTYPE.PERCENTAGE   // 👈 naya
+        _discountInput.value = ""                        // 👈 naya
         activeOrderId = null
-        // Table‑specific data (take‑away ke liye tableId = 0) ko bhi clean kar dein
-        currentTableId = 0L
     }
 
     private fun getAllGeneralItem() {
