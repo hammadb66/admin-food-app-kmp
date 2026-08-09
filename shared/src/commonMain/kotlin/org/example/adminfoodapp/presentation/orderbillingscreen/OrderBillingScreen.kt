@@ -580,9 +580,8 @@ fun ReceiptSection(
             // PRINT BUTTON
             Button(
                 onClick = {
-                    val order = mapToOrderDetails(billItems, customerName, customerNumber, grandTotal)
-                    println(order)
-                    ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
+                    val kotOrder = mapToOrderDetailsForKOT(billItems, customerName, customerNumber)
+                    ReceiptPrinter.printReceipt(kotOrder, PrintMode.THERMAL)
                     viewModel.printAndSaveOrder()
                 },
                 enabled = hasUnprintedIncrements && !hasPendingDecrements && isCustomerNameValid,
@@ -864,5 +863,32 @@ fun mapToOrderDetails(
         foodQuantity = billItems.map { it.workingQuantity },
         foodPrice = billItems.map { it.price.toString() },
         totalPrice = grandTotal.toString()
+    )
+}
+
+
+// Sirf Unprinted/New items ki KOT Slip ke liye Mapper
+fun mapToOrderDetailsForKOT(
+    billItems: List<BillItemUiState>,
+    customerName: String,
+    customerNumber: String
+): OrderDetails {
+    // 1. Sirf wo items filter karo jinki unprinted count > 0 hai
+    val unprintedItems = billItems.filter { it.unprintedIncrement > 0 }
+
+    val names = unprintedItems.map { it.itemName }
+    val quantities = unprintedItems.map { it.unprintedIncrement } // 👈 Sirf NAYI quantity (Delta)
+    val prices = unprintedItems.map { it.price.toString() }
+
+    // Total price calculate karo sirf unprinted items ka
+    val kotTotal = unprintedItems.sumOf { it.price * it.unprintedIncrement }
+
+    return OrderDetails(
+        userName = customerName.ifEmpty { "Takeaway Guest" },
+        phoneNumber = customerNumber,
+        foodName = names,
+        foodQuantity = quantities,
+        foodPrice = prices,
+        totalPrice = kotTotal.toString()
     )
 }

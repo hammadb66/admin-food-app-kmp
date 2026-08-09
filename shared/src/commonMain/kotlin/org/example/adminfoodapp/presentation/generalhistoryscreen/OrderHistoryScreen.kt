@@ -37,6 +37,7 @@ import androidx.navigation.NavHostController
 import org.example.adminfoodapp.database.OrderItemsEntity
 import org.example.adminfoodapp.database.OrdersEntity
 import org.example.adminfoodapp.database.VoidLogsEntity
+import org.example.adminfoodapp.utils.ORDERSTATUS
 import org.example.adminfoodapp.utils.ORDERTYPE
 import org.example.adminfoodapp.utils.ReceiptPrinter
 import org.jetbrains.compose.resources.Font
@@ -418,10 +419,11 @@ fun OrderHistoryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Rs. ${order.totalAmount.toInt()}",
+                    text = if(order.orderStatus == ORDERSTATUS.PENDING.id) "Pending" else "Rs. ${order.totalAmount.toInt()}",
                     fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
                     fontSize = 20.sp,
-                    color = TextColor
+                    color = if (order.orderStatus == ORDERSTATUS.PENDING.id) RedError else TextColor
+
                 )
 
                 Text(
@@ -581,10 +583,10 @@ fun OrderDetailDialog(
                 ) {
                     Text("Grand Total", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Text(
-                        text = "Rs. ${order.totalAmount.toInt()}",
+                        text = if(order.orderStatus == ORDERSTATUS.PENDING.id) "Pending" else "Rs. ${order.totalAmount.toInt()}",
                         fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
                         fontSize = 22.sp,
-                        color = TextColor
+                        color = if (order.orderStatus == ORDERSTATUS.PENDING.id) RedError else TextColor
                     )
                 }
             }

@@ -70,7 +70,7 @@ CREATE TABLE UserEntity (
     SELECT * FROM TablesEntity ORDER BY id ASC;
 
     insertTable:
-    INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status) VALUES (?, ?, 1);
+    INSERT OR REPLACE INTO TablesEntity(tableNumber, capacity, status) VALUES (?, ?, 0);
 
     updateTableStatus:
     UPDATE TablesEntity SET status = ? WHERE id = ?;

@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -77,196 +76,197 @@ fun TakeAwayScreen(navController: NavHostController) {
             onConfirm = { reason -> viewModel.confirmBatchVoid(reason) },
             onDismiss = { viewModel.closeBatchVoidDialog() })
     }
-        BoxWithConstraints(
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        val isCompactScreen = maxWidth < 700.dp
+
+        Column(
             modifier = Modifier.fillMaxSize()
+                .then(if (isCompactScreen) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                .padding(12.dp)
         ) {
-            val isCompactScreen = maxWidth < 700.dp
-
-            Column(
-                modifier = Modifier.fillMaxSize()
-                    .then(if (isCompactScreen) Modifier.verticalScroll(rememberScrollState()) else Modifier)
-                    .padding(12.dp)
-            ) {
 
 
-                // HEADER BAR (Revert Button Fixed Here)
-                if (hasPendingDecrements || hasUnprintedIncrements) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedButton(
-                            onClick = { viewModel.revertUnsavedChanges() },
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Icon(Icons.Default.Undo, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Revert Changes", fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                        }
-                    }
-                }
-
-
-                // PENDING DECREMENTS ALERT BANNER
-                if (hasPendingDecrements) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
-                        border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Icon(
-                                    Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = Color(0xFFDC2626),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        "Items Decreased / Deleted",
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF991B1B),
-                                        fontSize = 12.sp
-                                    )
-                                    Text(
-                                        "${pendingDecrementsList.sumOf { it.pendingDecrement }} item(s) pending cancellation reason",
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF7F1D1D)
-                                    )
-                                }
-                            }
-                            Button(
-                                onClick = { viewModel.openBatchVoidDialog() },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text("Confirm", fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                            }
-                        }
-                    }
-                }
-
-                // CUSTOMER INFORMATION CARD
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = CardBackground),
-                    border = BorderStroke(1.dp, CardBorderColor),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+            // HEADER BAR (Revert Button Fixed Here)
+            if (hasPendingDecrements || hasUnprintedIncrements) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    OutlinedButton(
+                        onClick = { viewModel.revertUnsavedChanges() },
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        OutlinedTextField(
-                            value = customerName,
-                            onValueChange = { viewModel.changeCustomerName(it) },
-                            modifier = Modifier.weight(1f),
-                            label = {
-                                Text(text = "Customer Name *" , fontSize = 11.sp
-                                )
-                            },
-                            isError =customerName.isBlank(),
-                            shape = RoundedCornerShape(8.dp),
-                            singleLine = true,
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PrimaryAccent, unfocusedBorderColor = CardBorderColor
-                            )
-                        )
-                        OutlinedTextField(
-                            value = customerNumber,
-                            onValueChange = { viewModel.changeCustomerNumber(it) },
-                            modifier = Modifier.weight(1f),
-                            label = { Text("Customer Phone", fontSize = 11.sp) },
-                            shape = RoundedCornerShape(8.dp),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Phone,
-                                    contentDescription = null,
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PrimaryAccent, unfocusedBorderColor = CardBorderColor
-                            )
-                        )
-                    }
-                }
-
-                // RESPONSIVE LAYOUT SWITCHING
-                if (isCompactScreen) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        MenuCatalogSection(
-                            searchQuery = searchQuery,
-                            onSearchChange = { searchQuery = it },
-                            generalItem = generalItem,
-                            onAddItem = { id, name, price -> viewModel.addItem(id, name, price) },
-                            modifier = Modifier.fillMaxWidth().height(260.dp)
-                        )
-                        ReceiptSection(
-                            billItems = billItems,
-                            grandTotal = grandTotal,
-                            hasUnprintedIncrements = hasUnprintedIncrements,
-                            hasPendingDecrements = hasPendingDecrements,
-                            isCustomerNameValid = isCustomerNameValid,
-                            customerName = customerName,
-                            customerNumber = customerNumber,
-                            viewModel = viewModel,
-                            isCompact = true,
-                            modifier = Modifier.fillMaxWidth().height(360.dp)
-                        )
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        MenuCatalogSection(
-                            searchQuery = searchQuery,
-                            onSearchChange = { searchQuery = it },
-                            generalItem = generalItem,
-                            onAddItem = { id, name, price -> viewModel.addItem(id, name, price) },
-                            modifier = Modifier.weight(1.2f).fillMaxHeight()
-                        )
-                        ReceiptSection(
-                            billItems = billItems,
-                            grandTotal = grandTotal,
-                            hasUnprintedIncrements = hasUnprintedIncrements,
-                            hasPendingDecrements = hasPendingDecrements,
-                            isCustomerNameValid = isCustomerNameValid,
-                            customerName = customerName,
-                            customerNumber = customerNumber,
-                            viewModel = viewModel,
-                            isCompact = false,
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        )
+                        Icon(Icons.Default.Undo, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Revert Changes", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
             }
+
+
+            // PENDING DECREMENTS ALERT BANNER
+            if (hasPendingDecrements) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                    border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFDC2626),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    "Items Decreased / Deleted",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF991B1B),
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    "${pendingDecrementsList.sumOf { it.pendingDecrement }} item(s) pending cancellation reason",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF7F1D1D)
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = { viewModel.openBatchVoidDialog() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("Confirm", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+
+            // CUSTOMER INFORMATION CARD
+            Card(
+                colors = CardDefaults.cardColors(containerColor = CardBackground),
+                border = BorderStroke(1.dp, CardBorderColor),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = customerName,
+                        onValueChange = { viewModel.changeCustomerName(it) },
+                        modifier = Modifier.weight(1f),
+                        label = {
+                            Text(
+                                text = "Customer Name *", fontSize = 11.sp
+                            )
+                        },
+                        isError = customerName.isBlank(),
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryAccent, unfocusedBorderColor = CardBorderColor
+                        )
+                    )
+                    OutlinedTextField(
+                        value = customerNumber,
+                        onValueChange = { viewModel.changeCustomerNumber(it) },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Customer Phone", fontSize = 11.sp) },
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Phone,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryAccent, unfocusedBorderColor = CardBorderColor
+                        )
+                    )
+                }
+            }
+
+            // RESPONSIVE LAYOUT SWITCHING
+            if (isCompactScreen) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MenuCatalogSection(
+                        searchQuery = searchQuery,
+                        onSearchChange = { searchQuery = it },
+                        generalItem = generalItem,
+                        onAddItem = { id, name, price -> viewModel.addItem(id, name, price) },
+                        modifier = Modifier.fillMaxWidth().height(260.dp)
+                    )
+                    ReceiptSection(
+                        billItems = billItems,
+                        grandTotal = grandTotal,
+                        hasUnprintedIncrements = hasUnprintedIncrements,
+                        hasPendingDecrements = hasPendingDecrements,
+                        isCustomerNameValid = isCustomerNameValid,
+                        customerName = customerName,
+                        customerNumber = customerNumber,
+                        viewModel = viewModel,
+                        isCompact = true,
+                        modifier = Modifier.fillMaxWidth().height(360.dp)
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    MenuCatalogSection(
+                        searchQuery = searchQuery,
+                        onSearchChange = { searchQuery = it },
+                        generalItem = generalItem,
+                        onAddItem = { id, name, price -> viewModel.addItem(id, name, price) },
+                        modifier = Modifier.weight(1.2f).fillMaxHeight()
+                    )
+                    ReceiptSection(
+                        billItems = billItems,
+                        grandTotal = grandTotal,
+                        hasUnprintedIncrements = hasUnprintedIncrements,
+                        hasPendingDecrements = hasPendingDecrements,
+                        isCustomerNameValid = isCustomerNameValid,
+                        customerName = customerName,
+                        customerNumber = customerNumber,
+                        viewModel = viewModel,
+                        isCompact = false,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                    )
+                }
+            }
         }
+    }
 
 }
 
@@ -506,9 +506,9 @@ fun ReceiptSection(
             // PRINT BUTTON
             Button(
                 onClick = {
-                    val order = mapToOrderDetails(billItems, customerName, customerNumber, grandTotal)
-                    println(order)
-                    ReceiptPrinter.printReceipt(order, PrintMode.THERMAL)
+                    // 👈 Bas Yahan badlaaw kiya hai: mapToOrderDetailsForKOT use kar rahe hain
+                    val kotOrder = mapToOrderDetailsForKOT(billItems, customerName, customerNumber)
+                    ReceiptPrinter.printReceipt(kotOrder, PrintMode.THERMAL)
                     viewModel.printAndSaveOrder()
                 },
                 enabled = hasUnprintedIncrements && !hasPendingDecrements && isCustomerNameValid,
@@ -524,7 +524,7 @@ fun ReceiptSection(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                   text= "Print Takeaway KOT / Slip",
+                    text = "Print Takeaway KOT / Slip",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
@@ -764,5 +764,32 @@ fun mapToOrderDetails(
         foodQuantity = billItems.map { it.workingQuantity },
         foodPrice = billItems.map { it.price.toString() },
         totalPrice = grandTotal.toString()
+    )
+}
+
+
+// Sirf Unprinted/New items ki KOT Slip ke liye Mapper
+fun mapToOrderDetailsForKOT(
+    billItems: List<BillItemUiState>,
+    customerName: String,
+    customerNumber: String
+): OrderDetails {
+    // 1. Sirf wo items filter karo jinki unprinted count > 0 hai
+    val unprintedItems = billItems.filter { it.unprintedIncrement > 0 }
+
+    val names = unprintedItems.map { it.itemName }
+    val quantities = unprintedItems.map { it.unprintedIncrement } // 👈 Sirf NAYI quantity (Delta)
+    val prices = unprintedItems.map { it.price.toString() }
+
+    // Total price calculate karo sirf unprinted items ka
+    val kotTotal = unprintedItems.sumOf { it.price * it.unprintedIncrement }
+
+    return OrderDetails(
+        userName = customerName.ifEmpty { "Takeaway Guest" },
+        phoneNumber = customerNumber,
+        foodName = names,
+        foodQuantity = quantities,
+        foodPrice = prices,
+        totalPrice = kotTotal.toString()
     )
 }
