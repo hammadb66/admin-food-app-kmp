@@ -85,7 +85,7 @@ fun CheckoutDiscountDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = GoldAccent, unfocusedBorderColor = CardBorderColor
+                        focusedBorderColor = GoldAccent, unfocusedBorderColor = Color.White
                     )
                 )
 

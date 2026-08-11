@@ -42,7 +42,7 @@ class TakeAwayViewModel(
     private val _allGeneralItem = MutableStateFlow<Resource<List<GenralItemsEntity>>>(Resource.Loading)
     val allGeneralItem = _allGeneralItem.asStateFlow()
     private var activeOrderId: Long? = null
-
+    private var orderObserveJob: kotlinx.coroutines.Job? = null
     private val _customerName = MutableStateFlow("")
     val customerName: StateFlow<String> = _customerName.asStateFlow()
 
@@ -58,7 +58,6 @@ class TakeAwayViewModel(
         getAllGeneralItem()
         loadOrder()
     }
-
 
     fun changeCustomerName(name: String) {
         _customerName.value = name
@@ -85,6 +84,7 @@ class TakeAwayViewModel(
             DISCOUNTTYPE.AMOUNT -> rawValue.coerceIn(0.0, subtotal)
         }
     }
+
     fun loadOrder() {
         viewModelScope.launch {
             val pendingOrder = repository.getPendingOrderForTakeAway()
@@ -97,8 +97,11 @@ class TakeAwayViewModel(
         }
     }
 
+    // FIX 1: Purana coroutine job cancel karna taake naye order mein masla na ho
     private fun observeCommittedItems(orderId: Long) {
-        viewModelScope.launch {
+        orderObserveJob?.cancel()
+
+        orderObserveJob = viewModelScope.launch {
             repository.getOrderItems(orderId).collect { dbList ->
                 val currentWorkingMap = _billItems.value.associateBy { it.menuItemId }
                 _billItems.value = dbList.map { db ->
@@ -180,8 +183,8 @@ class TakeAwayViewModel(
         _showBatchVoidDialog.value = false
     }
 
-    // Confirm Batch Decrement / Cancellation Reason
-// Confirm Batch Decrement / Cancellation Reason
+
+    // Ab resetAfterCheckout() use kar rahe hain taake Dine-In jaisa hi clean state mile.
     fun confirmBatchVoid(reason: String) {
         val orderId = activeOrderId ?: return
         viewModelScope.launch {
@@ -203,17 +206,23 @@ class TakeAwayViewModel(
             }
 
             if (voidItems.isNotEmpty()) {
-                // 👈 1. Pass currentTableId to repository
                 repository.processBatchVoid(
-                    "Take Away[$customerName]", orderId, 0L, voidItems, reason, decreasedItemsMap
+                    "Take Away[${_customerName.value}]", orderId, 0L, voidItems, reason, decreasedItemsMap
                 )
 
-                // 👈 2. Check if all items in UI were deleted (workingQuantity == 0)
-                val remainingItemsCount = _billItems.value.count { it.workingQuantity > 0 }
-                if (remainingItemsCount == 0) {
-                    activeOrderId = null
-                    // Screen ko auto navigate back / finish kar do
-                    _checkoutSuccess.emit(Unit)
+                // UI filter karo (0 quantity wale nikal do)
+                val updatedList = _billItems.value.filter { it.workingQuantity > 0 }
+                _billItems.value = updatedList
+
+                // Agar sab items khatam ho gaye toh bilkul fresh start lo
+                if (updatedList.isEmpty()) {
+                    orderObserveJob?.cancel()      // 👈 Purana Radio Band!
+                    resetAfterCheckout()           // 👈 activeOrderId, name, number, discount — sab clean
+
+                    // Agar aap chahte hain ke user usi screen par rahe taake naya order banaye,
+                    // toh is _checkoutSuccess line ko comment rehne dein. Agar pichle screen par
+                    // bhejna hai toh neeche wali line ko uncomment kar dein.
+                    // _checkoutSuccess.emit(Unit)
                 }
             }
 
@@ -221,15 +230,19 @@ class TakeAwayViewModel(
         }
     }
 
-    // Print & Save (Prints Increments & New Drafts together)
-// Print & Save
+
     fun printAndSaveOrder() {
 
         viewModelScope.launch {
 
             val orderType = "TAKE_AWAY"
 
-            println(activeOrderId)
+            // 👇 STEP 1: Snapshot pehle hi jeb mein rakh lo — race se pehle
+            val snapshot = _billItems.value
+            val itemsToSave = snapshot.map { Triple(it.dbId, it.menuItemId, it.itemName) }
+            val quantities = snapshot.associate { it.menuItemId to it.workingQuantity }
+            val prices = snapshot.associate { it.menuItemId to it.price }
+
             if (activeOrderId == null) {
                 activeOrderId = repository.createOrder(
                     customerName = _customerName.value.ifEmpty { "Walk-in Customer" },
@@ -238,13 +251,13 @@ class TakeAwayViewModel(
                     orderType = ORDERTYPE.TAKEAWAY.id,
                     currentTimeStamp = System.currentTimeMillis()
                 )
-                observeCommittedItems(activeOrderId!!)
+                observeCommittedItems(activeOrderId!!)   // ab isse itemsToSave pe asar nahi padega
             }
 
             val orderId = activeOrderId!!
 
-            // Calculate Delta Items for Printing Slip
-            val printList = _billItems.value.mapNotNull { item ->
+            // Calculate Delta Items for Printing Slip (snapshot se, live state se nahi)
+            val printList = snapshot.mapNotNull { item ->
                 val delta = item.unprintedIncrement
                 if (delta > 0) {
                     "[$orderType] ITEM: ${item.itemName} | QTY: +$delta | PRICE: Rs. ${item.price}"
@@ -256,10 +269,6 @@ class TakeAwayViewModel(
                 printList.forEach { println(it) }
                 println("==========================================")
             }
-
-            val itemsToSave = _billItems.value.map { Triple(it.dbId, it.menuItemId, it.itemName) }
-            val quantities = _billItems.value.associate { it.menuItemId to it.workingQuantity }
-            val prices = _billItems.value.associate { it.menuItemId to it.price }
 
             repository.commitAndPrintOrder(orderId, itemsToSave, quantities, prices)
         }

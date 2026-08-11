@@ -629,28 +629,6 @@ fun ReceiptSection(
                     )
                 }
             }*/
-
-            // SIMPLE TOTAL — discount ab checkout dialog mein dikhega
-            Surface(
-                color = Color(0xFFF1F5F9),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(10.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Grand Total", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text(
-                        "Rs. ${grandTotal.toInt()}",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryAccent
-                    )
-                }
-            }
-
             // BILL BREAKDOWN — Subtotal / Discount / Final Total
             Surface(
                 color = Color(0xFFF1F5F9),
