@@ -11,8 +11,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,7 +46,7 @@ fun SplashScreen(navController: NavHostController) {
 
     val viewModel: SplashViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
-
+    val isTrial by viewModel.isTrialActive.collectAsState()
     val scale = remember { Animatable(0.4f) }
     val alpha = remember { Animatable(0f) }
 
@@ -61,121 +65,161 @@ fun SplashScreen(navController: NavHostController) {
         viewModel.checkConnectionAndFetchUser()
     }
 
-    // Aap ka purana Navigation Logic based on ViewModel state
-    LaunchedEffect(state) {
-        when (val result = state) {
-            is Resource.Success -> {
-                delay(400) // Animated transition feeing ke liye chota sa pause
-                val user = result.data
-                if (user.admin == true || user.userAccess == true) {
-                    navController.navigate(NavRoutes.MainScreen) {
-                        popUpTo(NavRoutes.SplashScreen) { inclusive = true }
+    LaunchedEffect(state, isTrial) {
+        if (isTrial) {
+            when (val result = state) {
+                is Resource.Success -> {
+                    delay(400)
+                    val user = result.data
+                    if (user.admin == true || user.userAccess == true) {
+                        navController.navigate(NavRoutes.MainScreen) {
+                            popUpTo(NavRoutes.SplashScreen) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(NavRoutes.LoginScreen) {
+                            popUpTo(NavRoutes.SplashScreen) { inclusive = true }
+                        }
                     }
-                } else {
+                }
+
+                is Resource.Error -> {
+                    delay(400)
                     navController.navigate(NavRoutes.LoginScreen) {
                         popUpTo(NavRoutes.SplashScreen) { inclusive = true }
                     }
                 }
-            }
 
-            is Resource.Error -> {
-                delay(400)
-                navController.navigate(NavRoutes.LoginScreen) {
-                    popUpTo(NavRoutes.SplashScreen) { inclusive = true }
-                }
+                is Resource.Loading -> {}
             }
-
-            is Resource.Loading -> {}
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize().background(DarkBackground), contentAlignment = Alignment.Center
-    ) {
-        // Background Glowing Orbs (Login Screen Se Matching)
-        Box(
-            modifier = Modifier.size(380.dp).offset(x = (-100).dp, y = (-70).dp).background(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0x55B43C14), Color.Transparent)
-                ), shape = CircleShape
-            )
-        )
-        Box(
-            modifier = Modifier.size(340.dp).align(Alignment.BottomEnd).offset(x = 80.dp, y = 80.dp).background(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0x40D4832E), Color.Transparent)
-                ), shape = CircleShape
-            )
-        )
+    if(isTrial){
 
-        // Center Content with Zoom & Alpha Animation
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.graphicsLayer(
-                scaleX = scale.value, scaleY = scale.value, alpha = alpha.value
-            )
+        Box(
+            modifier = Modifier.fillMaxSize().background(DarkBackground), contentAlignment = Alignment.Center
         ) {
-            // Glowing Logo Container
+            // Background Glowing Orbs (Login Screen Se Matching)
             Box(
-                modifier = Modifier.size(150.dp).background(
+                modifier = Modifier.size(380.dp).offset(x = (-100).dp, y = (-70).dp).background(
                     brush = Brush.radialGradient(
-                        colors = listOf(PrimaryAccent.copy(alpha = 0.25f), Color.Transparent)
+                        colors = listOf(Color(0x55B43C14), Color.Transparent)
                     ), shape = CircleShape
-                ).border(1.dp, PrimaryAccent.copy(alpha = 0.35f), CircleShape).padding(14.dp),
-                contentAlignment = Alignment.Center
+                )
+            )
+            Box(
+                modifier = Modifier.size(340.dp).align(Alignment.BottomEnd).offset(x = 80.dp, y = 80.dp).background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0x40D4832E), Color.Transparent)
+                    ), shape = CircleShape
+                )
+            )
+
+            // Center Content with Zoom & Alpha Animation
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.graphicsLayer(
+                    scaleX = scale.value, scaleY = scale.value, alpha = alpha.value
+                )
             ) {
-                Image(
-                    modifier = Modifier.size(95.dp),
-                    painter = painterResource(Res.drawable.logo),
-                    contentDescription = "logo"
+                // Glowing Logo Container
+                Box(
+                    modifier = Modifier.size(150.dp).background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(PrimaryAccent.copy(alpha = 0.25f), Color.Transparent)
+                        ), shape = CircleShape
+                    ).border(1.dp, PrimaryAccent.copy(alpha = 0.35f), CircleShape).padding(14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        modifier = Modifier.size(95.dp),
+                        painter = painterResource(Res.drawable.logo),
+                        contentDescription = "logo"
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Way of Food", color = Color(0xFFF5EDE0), style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 40.sp
+                    )
+                )
+
+                // Horizontal Accent Line
+                Box(
+                    modifier = Modifier.padding(vertical = 10.dp).width(70.dp).height(2.dp).background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(Color.Transparent, PrimaryAccent, Color.Transparent)
+                        )
+                    )
+                )
+
+                Text(
+                    text = "Admin Dashboard", color = PrimaryAccent, style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 24.sp
+                    )
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Way of Food", color = Color(0xFFF5EDE0), style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 40.sp
+            // Bottom Progress Indicator & Credit Text
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp), color = PrimaryAccent, strokeWidth = 2.dp
                 )
-            )
 
-            // Horizontal Accent Line
-            Box(
-                modifier = Modifier.padding(vertical = 10.dp).width(70.dp).height(2.dp).background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(Color.Transparent, PrimaryAccent, Color.Transparent)
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    textAlign = TextAlign.Center,
+                    color = PrimaryAccent.copy(alpha = 0.7f),
+                    text = "Design By\nHammad Baloch",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 18.sp, lineHeight = 22.sp
                     )
                 )
-            )
-
-            Text(
-                text = "Admin Dashboard", color = PrimaryAccent, style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 24.sp
-                )
-            )
+            }
         }
+    }else{
+        TrialExpiredBlockScreen()
+    }
+}
 
-        // Bottom Progress Indicator & Credit Text
+@Composable
+fun TrialExpiredBlockScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFF1E1E1E) // Dark background
+    ) {
         Column(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize().padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(24.dp), color = PrimaryAccent, strokeWidth = 2.dp
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = Color.Red,
+                modifier = Modifier.size(80.dp)
             )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
-                textAlign = TextAlign.Center,
-                color = PrimaryAccent.copy(alpha = 0.7f),
-                text = "Design By\nHammad Baloch",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = FontFamily(Font(Res.font.yeonsung_regular)), fontSize = 18.sp, lineHeight = 22.sp
-                )
+                text = "Trial Expired or Date Tampered!",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Aapka 7 Days Free Trial khatam ho chuka hai ya system date change ki gayi hai. App istemal karne ke liye license buy karein.",
+                color = Color.Gray,
+                textAlign = TextAlign.Center
             )
         }
     }

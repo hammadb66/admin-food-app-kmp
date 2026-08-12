@@ -21,12 +21,21 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "org.example.adminfoodapp.MainKt"
-        jvmArgs += listOf("-Dskiko.renderApi=OPENGL")   // ya "SOFTWARE" try karo agar OPENGL na chale
+        jvmArgs += listOf("-Dskiko.renderApi=OPENGL")
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "org.example.adminfoodapp"
+            packageName = "AdminFoodApp"
             packageVersion = "1.0.0"
+            vendor = "Zavion Technologies"
+            description = "Restaurant Order Management App"
+            includeAllModules = true
+            windows {
+                shortcut=true
+                menuGroup = "AdminFoodApp"
+                upgradeUuid = "b7e27137-4a66-4142-9dd6-bd8ebe0378f5"
+//                 iconFile.set(project.file("icon.ico"))
+            }
         }
     }
 }
