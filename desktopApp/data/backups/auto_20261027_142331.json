@@ -1,0 +1,125 @@
+{
+    "version": 1,
+    "exportedAt": 1793093011203,
+    "tables": [
+        {
+            "id": 1,
+            "tableNumber": "1",
+            "capacity": 4,
+            "status": 0
+        },
+        {
+            "id": 2,
+            "tableNumber": "2",
+            "capacity": 8,
+            "status": 0
+        }
+    ],
+    "menuItems": [
+        {
+            "id": 1,
+            "itemName": "burger small",
+            "price": 190.0,
+            "category": "General Item"
+        },
+        {
+            "id": 2,
+            "itemName": "burger large",
+            "price": 500.0,
+            "category": "General Item"
+        }
+    ],
+    "orders": [
+        {
+            "id": 1,
+            "tableId": 1,
+            "customerName": "Walk-in Customer",
+            "customerNumber": 0,
+            "orderType": 0,
+            "subtotal": 500.0,
+            "discountType": 1,
+            "discountValue": 0.0,
+            "discountAmount": 0.0,
+            "totalAmount": 500.0,
+            "orderStatus": 1,
+            "createdAt": 1788940229373,
+            "createdByID": 1,
+            "createdByName": "admin"
+        },
+        {
+            "id": 2,
+            "tableId": 0,
+            "customerName": "baloch",
+            "customerNumber": 0,
+            "orderType": 1,
+            "subtotal": 3450.0,
+            "discountType": 0,
+            "discountValue": 0.0,
+            "discountAmount": 0.0,
+            "totalAmount": 3450.0,
+            "orderStatus": 1,
+            "createdAt": 1793093008315,
+            "createdByID": 2,
+            "createdByName": "hammad"
+        }
+    ],
+    "orderItems": [
+        {
+            "id": 2,
+            "orderId": 1,
+            "menuItemId": 2,
+            "itemName": "burger large",
+            "quantity": 1,
+            "printedQuantity": 1,
+            "price": 500.0
+        },
+        {
+            "id": 3,
+            "orderId": 2,
+            "menuItemId": 1,
+            "itemName": "burger small",
+            "quantity": 5,
+            "printedQuantity": 5,
+            "price": 190.0
+        },
+        {
+            "id": 4,
+            "orderId": 2,
+            "menuItemId": 2,
+            "itemName": "burger large",
+            "quantity": 5,
+            "printedQuantity": 5,
+            "price": 500.0
+        }
+    ],
+    "voidLogs": [
+        {
+            "id": 1,
+            "orderId": 1,
+            "itemName": "burger small",
+            "cancelledQuantity": 1,
+            "unitPrice": 190.0,
+            "reason": "customer cancelation",
+            "createdAt": 1788940316996,
+            "voidByID": 1,
+            "voidedByName": "admin",
+            "customerName": "Dine-In 1[kotlinx.coroutines.flow.ReadonlyStateFlow@6e7cc669]"
+        }
+    ],
+    "users": [
+        {
+            "id": 1,
+            "name": "admin",
+            "password": "123",
+            "isAdmin": 1,
+            "userAccess": 1
+        },
+        {
+            "id": 2,
+            "name": "hammad",
+            "password": "1234",
+            "isAdmin": 0,
+            "userAccess": 1
+        }
+    ]
+}

@@ -10,15 +10,18 @@ import org.example.adminfoodapp.database.model.UserModel
 import org.example.adminfoodapp.domain.usecase.LoginUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first // 👈 Ye naya import add karein
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.example.adminfoodapp.utils.LoginState
+import org.example.adminfoodapp.utils.SessionManager // 👈 Import karein
 import org.example.adminfoodapp.utils.Utils.ISADMIN
 import org.example.adminfoodapp.utils.Utils.ISUSERACCESS
 import org.example.adminfoodapp.utils.Utils.IS_DEVELOPER
 
 class LoginViewModel(
-    private val loginUseCase: LoginUseCase, private val setting: Settings
+    private val loginUseCase: LoginUseCase,
+    private val setting: Settings,
+    private val sessionManager: SessionManager // 👈 Add karein
 ) : ViewModel() {
 
     private val _stateLogin = MutableStateFlow<LoginState<UserModel>>(LoginState.Idle)
@@ -26,7 +29,7 @@ class LoginViewModel(
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
-            setting.putBoolean(IS_DEVELOPER, false) // Aam login pe dev mode off
+            setting.putBoolean(IS_DEVELOPER, false)
             loginUseCase.invoke(email, password).collect { result ->
                 if (result is LoginState.Success) {
                     saveUserData(result.data)
@@ -40,27 +43,23 @@ class LoginViewModel(
         viewModelScope.launch {
             _stateLogin.value = LoginState.Loading
             try {
-                // 1. Firebase Auth Check
                 Firebase.auth.signInWithEmailAndPassword(email, password)
                 val uid = Firebase.auth.currentUser?.uid ?: throw Exception("User ID not found")
 
-                // 2. Realtime Database Check using valueEvents
                 val devRef = Firebase.database.reference().child("dev").child(uid)
-
-                // 👇 valueEvents use kiya aur .first() se pehli value nikal li (jaise FirebaseMenuDataSource mein hota hai)
                 val devSnapshot = devRef.valueEvents.first()
-
-                // 👇 Snapshot se value nikali
                 val isDev = devSnapshot.value<Boolean?>() ?: false
 
                 if (!isDev) {
-                    Firebase.auth.signOut() // Agar dev nahi hai toh foran logout kar do
+                    Firebase.auth.signOut()
                     throw Exception("Access Denied. You are not a Developer.")
                 }
 
-                // 3. Agar dono pass ho gaye, toh access do
                 setting.putBoolean(IS_DEVELOPER, true)
                 setting.putBoolean(ISADMIN, true)
+
+                // 👇 YEH SABSE ZAROORI HAI: Session save karein taake Firebase data load ho
+                sessionManager.saveSession(userKey = uid, userName = email.substringBefore("@"))
 
                 val devUser = UserModel(
                     name = email.substringBefore("@"),
