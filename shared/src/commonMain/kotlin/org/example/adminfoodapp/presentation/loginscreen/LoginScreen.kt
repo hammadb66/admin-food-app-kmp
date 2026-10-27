@@ -148,7 +148,9 @@ fun LoginScreen(navController: NavHostController) {
                                     password = passwordField,
                                     onPasswordChange = { passwordField = it },
                                     isPasswordVisible = isPasswordVisible,
-                                    onTogglePasswordVisibility = { isPasswordVisible = !isPasswordVisible })
+                                    onTogglePasswordVisibility = { isPasswordVisible = !isPasswordVisible },
+                                    onDevLogin = { e, p -> viewModel.loginAsDeveloper(e, p) }
+                                )
                             }
                         }
                     }
@@ -170,7 +172,8 @@ fun LoginScreen(navController: NavHostController) {
                                 password = passwordField,
                                 onPasswordChange = { passwordField = it },
                                 isPasswordVisible = isPasswordVisible,
-                                onTogglePasswordVisibility = { isPasswordVisible = !isPasswordVisible })
+                                onTogglePasswordVisibility = { isPasswordVisible = !isPasswordVisible },
+                                onDevLogin = { e, p -> viewModel.loginAsDeveloper(e, p) })
                         }
                         Spacer(modifier = Modifier.height(20.dp))
                     }
@@ -200,8 +203,12 @@ fun LoginBottomContainer(
     password: String,
     onPasswordChange: (String) -> Unit,
     isPasswordVisible: Boolean,
-    onTogglePasswordVisibility: () -> Unit
+    onTogglePasswordVisibility: () -> Unit,
+    onDevLogin:(String,String)->Unit
 ) {
+    var showDevLoginDialog by remember { mutableStateOf(false) }
+    var devEmail by remember { mutableStateOf("") }
+    var devPassword by remember { mutableStateOf("") }
     Column(
         modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -320,6 +327,10 @@ fun LoginBottomContainer(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        TextButton(onClick = { showDevLoginDialog = true }) {
+            Text("Login as Developer", color = PrimaryAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
+
         // Custom Footer Credit
         Text(
             text = "Design By\nHammad Baloch",
@@ -330,7 +341,55 @@ fun LoginBottomContainer(
             )
         )
     }
+
+    if (showDevLoginDialog) {
+        AlertDialog(
+            onDismissRequest = { showDevLoginDialog = false },
+            containerColor = Color(0xFF1E1E1E),
+            title = { Text("Developer Firebase Login", color = Color.White) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = devEmail,
+                        onValueChange = { devEmail = it },
+                        label = { Text("Email") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White, unfocusedTextColor = Color.White
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = devPassword,
+                        onValueChange = { devPassword = it },
+                        label = { Text("Password") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White, unfocusedTextColor = Color.White
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    onDevLogin(devEmail, devPassword)
+                    showDevLoginDialog = false
+                }) {
+                    Text("Login")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDevLoginDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
+    }
 }
+
+
+
 
 @Composable
 fun LoginUpperContainer() {

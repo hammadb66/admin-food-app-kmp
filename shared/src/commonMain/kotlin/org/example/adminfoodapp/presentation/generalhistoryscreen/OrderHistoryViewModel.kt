@@ -106,7 +106,7 @@ class OrderHistoryViewModel(
             discountAmount = order.discountAmount.toInt().toString()
         )
 
-        ReceiptPrinter.printReceipt(orderDetails, PrintMode.A4)
+        ReceiptPrinter.printReceipt(orderDetails, PrintMode.THERMAL)
     }
 
     // 👈 runBlocking hataya — ab poori function ek background coroutine ke andar chalti hai

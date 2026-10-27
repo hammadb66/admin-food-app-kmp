@@ -65,4 +65,7 @@ sealed interface NavRoutes {
     @Serializable
     object TakeAwayScreen : NavRoutes
 
+    @Serializable
+    object DeveloperSettingsScreen : NavRoutes
+
 }

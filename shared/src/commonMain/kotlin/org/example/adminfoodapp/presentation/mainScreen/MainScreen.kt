@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.launch
 import org.example.adminfoodapp.database.model.OrderDetails
 import org.example.adminfoodapp.database.model.QuickPendingOrder
@@ -47,9 +48,13 @@ import org.example.adminfoodapp.presentation.userprofilescreen.UserProfileScreen
 import org.example.adminfoodapp.presentation.viewmodel.ShareUserItemViewModel
 import org.example.adminfoodapp.presentation.viewmodel.SharedEditItemViewModel
 import org.example.adminfoodapp.presentation.viewmodel.SharedOrderItemViewModel
+import org.example.adminfoodapp.utils.AppMode
+import org.example.adminfoodapp.utils.AppModeManager
 import org.example.adminfoodapp.utils.MainActivityUiState
 import org.example.adminfoodapp.utils.ORDERTYPE
 import org.example.adminfoodapp.utils.SessionManager
+import org.example.adminfoodapp.utils.Utils.ISADMIN
+import org.example.adminfoodapp.utils.Utils.IS_DEVELOPER
 import org.example.adminfoodapp.utils.isDesktopPlatform
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
@@ -89,9 +94,15 @@ fun MainScreen(
     navController: NavHostController, viewModel: MainScreenViewModel = koinViewModel()
 ) {
     val sessionManager: SessionManager = koinInject()
+    val appModeManager: AppModeManager = koinInject()
+    val currentAppMode by appModeManager.modeFlow.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val localOrders by viewModel.localPendingOrders.collectAsState()
     val onlineOrders by viewModel.onlinePendingOrders.collectAsState()
+
+    val settings: Settings = koinInject() // 👈 Yeh naya add karo
+    val isDeveloper = settings.getBoolean(IS_DEVELOPER, false) // 👈 isAdmin ki jagah yeh
+
 
     val sharedEditItemViewModel = koinInject<SharedEditItemViewModel>()
     val sharedOrderItemViewModel = koinInject<SharedOrderItemViewModel>()
@@ -99,7 +110,18 @@ fun MainScreen(
     val userName by remember { mutableStateOf(sessionManager.getCurrentUserName()) }
     var currentTab by rememberSaveable { mutableStateOf(DashboardTab.DASHBOARD_HOME) }
     val scope = rememberCoroutineScope()
-
+    // 👇 NAYA: agar local mode mein hai aur currentTab online-only hai, toh Dashboard pe kick
+    LaunchedEffect(currentAppMode) {
+        if (currentAppMode == AppMode.LOCAL_ONLY && currentTab in setOf(
+                DashboardTab.ONLINE_PENDING,
+                DashboardTab.ONLINE_HISTORY,
+                DashboardTab.ADD_MENU_ITEM,
+                DashboardTab.ONLINE_ITEMS
+            )
+        ) {
+            currentTab = DashboardTab.DASHBOARD_HOME
+        }
+    }
     Row(
         modifier = Modifier.fillMaxSize().background(SurfaceBackground)
     ) {
@@ -114,7 +136,12 @@ fun MainScreen(
                         popUpTo(0) { inclusive = true }
                     }
                 }
-            })
+            },
+            onDeveloperClick = {
+                navController.navigate(NavRoutes.DeveloperSettingsScreen)
+            },
+            isDeveloper = isDeveloper
+            )
 
         Box(
             modifier = Modifier.weight(1f).fillMaxHeight()
@@ -123,7 +150,22 @@ fun MainScreen(
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center), color = PrimaryAccent
                 )
-            } else {
+            }else if (
+                currentAppMode == AppMode.LOCAL_ONLY &&
+                currentTab in setOf(
+                    DashboardTab.ONLINE_PENDING,
+                    DashboardTab.ONLINE_HISTORY,
+                    DashboardTab.ADD_MENU_ITEM,
+                    DashboardTab.ONLINE_ITEMS
+                )
+            ) {
+                DashboardHomeContent(
+                    uiState = uiState,
+                    localOrders = localOrders,
+                    onlineOrders = onlineOrders,
+                    navController = navController,
+                    onNavigateToTab = { currentTab = it })
+            }  else {
                 when (currentTab) {
                     DashboardTab.DASHBOARD_HOME -> {
                         DashboardHomeContent(
@@ -283,18 +325,24 @@ fun EmbeddedScreenWrapper(
 
 @Composable
 fun ResponsiveSidebarSection(
-    currentTab: DashboardTab, onTabSelected: (DashboardTab) -> Unit, onLogoutClick: () -> Unit, username: String
+    currentTab: DashboardTab,
+    onTabSelected: (DashboardTab) -> Unit,
+    onLogoutClick: () -> Unit,
+    username: String,
+    onDeveloperClick: () -> Unit,
+    isDeveloper: Boolean
 ) {
-    var isExpanded by remember { mutableStateOf(true) }
-    if (!isDesktopPlatform()){
-        isExpanded=false
-    }
+    val appModeManager: AppModeManager = koinInject()
+    val currentAppMode by appModeManager.modeFlow.collectAsState()
+    val isOnlineMode = currentAppMode == AppMode.ONLINE_APP
+
+    var isExpanded by remember { mutableStateOf(isDesktopPlatform()) }
 
     val sidebarWidth by animateDpAsState(
-        targetValue = if (isExpanded) 260.dp else 80.dp, animationSpec = spring(stiffness = Spring.StiffnessLow)
+        targetValue = if (isExpanded) 260.dp else 80.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessLow)
     )
 
-    // Icons ki bajaye Short Codes define kiye hain
     val allMenuItems = listOf(
         SidebarMenuItem("Dashboard", "DB", DashboardTab.DASHBOARD_HOME),
         SidebarMenuItem("Takeaway POS", "POS", DashboardTab.TAKEAWAY_BILLING),
@@ -309,38 +357,52 @@ fun ResponsiveSidebarSection(
         SidebarMenuItem("Sub Users", "SU", DashboardTab.SUB_USERS)
     )
 
-    val menuItems = remember {
-        if (!isDesktopPlatform()) {
-            allMenuItems.filter { item ->
-                item.targetTab != DashboardTab.TAKEAWAY_BILLING && item.targetTab != DashboardTab.DINE_IN_TABLES && item.targetTab != DashboardTab.GENERAL_HISTORY && item.targetTab != DashboardTab.GENERAL_ITEM
-            }
-        } else {
-            allMenuItems
+    val onlineOnlyTabs = remember {
+        setOf(
+            DashboardTab.ONLINE_PENDING,
+            DashboardTab.ONLINE_HISTORY,
+            DashboardTab.ADD_MENU_ITEM,
+            DashboardTab.ONLINE_ITEMS
+        )
+    }
+
+    val menuItems = remember(isOnlineMode) {
+        allMenuItems.filter { item ->
+            val platformOk = isDesktopPlatform() || item.targetTab !in setOf(
+                DashboardTab.TAKEAWAY_BILLING,
+                DashboardTab.DINE_IN_TABLES,
+                DashboardTab.GENERAL_HISTORY,
+                DashboardTab.GENERAL_ITEM
+            )
+            val modeOk = isOnlineMode || item.targetTab !in onlineOnlyTabs
+            platformOk && modeOk
         }
     }
+
     Column(
-        modifier = Modifier.width(sidebarWidth).fillMaxHeight().background(SidebarBackground)
-            .border(width = 1.dp, color = CardBorderColor).padding(12.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier.width(sidebarWidth).fillMaxHeight()
+            .background(SidebarBackground)
+            .border(width = 1.dp, color = CardBorderColor)
+            .padding(12.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            // Profile Header & Collapse Toggle Button
+            // Profile header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = if (isExpanded) Arrangement.SpaceBetween else Arrangement.Center,
+                horizontalArrangement = if (isExpanded) Arrangement.SpaceBetween
+                else Arrangement.Center,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        modifier = Modifier.size(38.dp)
-                    ) {
+                    Surface(modifier = Modifier.size(38.dp)) {
                         Box(contentAlignment = Alignment.Center) {
                             Surface(
-                                modifier = Modifier.size(46.dp).clip(CircleShape).clickable {
-                                    onTabSelected(
-                                        DashboardTab.EDIT_PROFILE
-                                    )
-                                }, color = SidebarBackground, shadowElevation = 4.dp
+                                modifier = Modifier.size(46.dp).clip(CircleShape)
+                                    .clickable { onTabSelected(DashboardTab.EDIT_PROFILE) },
+                                color = SidebarBackground,
+                                shadowElevation = 4.dp
                             ) {
                                 Icon(
                                     painter = painterResource(Res.drawable.profile_user),
@@ -353,23 +415,23 @@ fun ResponsiveSidebarSection(
                     }
                     if (isExpanded) {
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = username,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                maxLines = 1
-                            )
-                        }
+                        Text(
+                            text = username,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            maxLines = 1
+                        )
                     }
                 }
-
                 IconButton(
-                    onClick = { isExpanded = !isExpanded }, modifier = Modifier.size(28.dp), enabled = isDesktopPlatform()
+                    onClick = { isExpanded = !isExpanded },
+                    modifier = Modifier.size(28.dp),
+                    enabled = isDesktopPlatform()
                 ) {
                     Icon(
-                        imageVector = if (isExpanded) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
+                        imageVector = if (isExpanded) Icons.AutoMirrored.Filled.ArrowBack
+                        else Icons.Default.Menu,
                         contentDescription = "Toggle Sidebar",
                         tint = TextSecondary
                     )
@@ -378,7 +440,7 @@ fun ResponsiveSidebarSection(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = CardBorderColor)
 
-            // Menu Items List (Initials Badge Rendered)
+            // Menu items
             menuItems.forEach { item ->
                 val isSelected = currentTab == item.targetTab
                 val itemBg = if (isSelected) PrimaryAccent else Color.Transparent
@@ -387,14 +449,18 @@ fun ResponsiveSidebarSection(
                 val badgeTextColor = if (isSelected) Color.White else PrimaryAccent
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp).clip(RoundedCornerShape(12.dp))
-                    .background(itemBg).clickable { onTabSelected(item.targetTab) }
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(itemBg)
+                        .clickable { onTabSelected(item.targetTab) }
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = if (isExpanded) Arrangement.Start else Arrangement.Center) {
-                    // Icon ki jagah Text Initials Badge
+                    horizontalArrangement = if (isExpanded) Arrangement.Start else Arrangement.Center
+                ) {
                     Surface(
-                        modifier = Modifier.size(28.dp), shape = RoundedCornerShape(8.dp), color = badgeBg
+                        modifier = Modifier.size(28.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = badgeBg
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
@@ -405,7 +471,6 @@ fun ResponsiveSidebarSection(
                             )
                         }
                     }
-
                     if (isExpanded) {
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
@@ -420,27 +485,84 @@ fun ResponsiveSidebarSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        // Bottom section: Developer + Logout
+        Column {
+            Spacer(modifier = Modifier.height(12.dp))
 
-        // Logout Button
-        Row(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFFEF2F2))
-                .clickable { onLogoutClick() }.padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = if (isExpanded) Arrangement.Start else Arrangement.Center
-        ) {
-            Surface(
-                modifier = Modifier.size(28.dp), shape = RoundedCornerShape(8.dp), color = Color(0xFFFEE2E2)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "LO", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444)
-                    )
+            // 👇 NAYA: Developer Options button
+            if(isDeveloper){
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1E293B))
+                        .clickable { onDeveloperClick() }
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = if (isExpanded) Arrangement.Start
+                    else Arrangement.Center
+                ) {
+                    Surface(
+                        modifier = Modifier.size(28.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF334155)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                "DEV",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                    if (isExpanded) {
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            "Developer",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
                 }
             }
-            if (isExpanded) {
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Logout", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Logout (existing)
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFFEF2F2))
+                    .clickable { onLogoutClick() }
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (isExpanded) Arrangement.Start
+                else Arrangement.Center
+            ) {
+                Surface(
+                    modifier = Modifier.size(28.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFEE2E2)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            "LO",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+                }
+                if (isExpanded) {
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        "Logout",
+                        color = Color(0xFFEF4444),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
     }
@@ -454,12 +576,13 @@ fun DashboardHomeContent(
     navController: NavHostController,
     onNavigateToTab: (DashboardTab) -> Unit
 ) {
+    // MainScreen.kt mein DashboardHomeContent ke andar
     val dineInPending = localOrders.filter {
-        it.orderType.equals(ORDERTYPE.DINEIN.id) || it.titleOrTable.contains(
-            "Table", ignoreCase = true
-        )
+        it.orderType == ORDERTYPE.DINEIN.id // 👈 Sirf OrderType check karein
     }
-    val takeawayPending = localOrders.filter { !dineInPending.contains(it) }
+    val takeawayPending = localOrders.filter {
+        it.orderType == ORDERTYPE.TAKEAWAY.id
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(28.dp)

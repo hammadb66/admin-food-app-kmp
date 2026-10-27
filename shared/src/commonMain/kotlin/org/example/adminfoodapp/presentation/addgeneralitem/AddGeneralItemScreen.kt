@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import org.example.adminfoodapp.utils.UploadState
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -35,8 +36,25 @@ fun AddGeneralItemScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSaving by remember { mutableStateOf(false) }
     val viewModel: AddGeneralItemViewModel = koinViewModel()
-    val scrollState = rememberScrollState()
+    val uploadState by viewModel.uploadState.collectAsState()   // 👈 NAYA
 
+    val scrollState = rememberScrollState()
+    // 👇 NAYA: Success/Error handle karo
+    LaunchedEffect(uploadState) {
+        when (uploadState) {
+            is UploadState.Success -> {
+                isSaving = false
+                viewModel.resetState()
+                navController.navigateUp()
+            }
+            is UploadState.Error -> {
+                isSaving = false
+                errorMessage = (uploadState as UploadState.Error).message
+                viewModel.resetState()
+            }
+            else -> Unit
+        }
+    }
     Box(
         modifier = Modifier.fillMaxSize().background(Color(0xFFF7F7F9))
     ) {

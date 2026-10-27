@@ -12,6 +12,7 @@ import org.example.adminfoodapp.presentation.additemscreen.AddItemScreen
 import org.example.adminfoodapp.presentation.adminprofilescreen.AdminProfileScreen
 import org.example.adminfoodapp.presentation.allitemscreen.AllItemScreen
 import org.example.adminfoodapp.presentation.createuserscreen.CreateUserScreen
+import org.example.adminfoodapp.presentation.developersettings.DeveloperSettingsScreen
 import org.example.adminfoodapp.presentation.edititemscreen.EditItemScreen
 import org.example.adminfoodapp.presentation.edituserscreen.EditUserScreen
 import org.example.adminfoodapp.presentation.generalhistoryscreen.OrderHistoryScreen
@@ -102,6 +103,9 @@ fun NavGraph() {
             }
             composable<NavRoutes.TakeAwayScreen> {
                 TakeAwayScreen(navController = navController)
+            }
+            composable<NavRoutes.DeveloperSettingsScreen> {
+                DeveloperSettingsScreen(navController = navController)
             }
 
         }

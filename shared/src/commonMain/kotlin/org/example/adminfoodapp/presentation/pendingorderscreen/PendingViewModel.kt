@@ -23,7 +23,7 @@ class PendingViewModel(
     val orderDispatchUseCase: OrderDispatchUseCase,
     val cancelOrderUseCase: CancelOrderUseCase,
     val cancelConfirmOrderUseCase: CancelConfirmOrderUseCase,
-    private val sendOrderNotificationUseCase: SendOrderNotificationUseCase,
+//    private val sendOrderNotificationUseCase: SendOrderNotificationUseCase,
     private val networkMonitor: NetworkMonitor,
     private val toastManager: ToastManager
 ) : ViewModel() {

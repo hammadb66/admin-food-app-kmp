@@ -11,6 +11,7 @@ import org.example.adminfoodapp.database.repository.RestaurantRepository
 import org.example.adminfoodapp.domain.repository.AuthRepository
 import org.example.adminfoodapp.domain.repository.MenuRepository
 import org.example.adminfoodapp.domain.repository.NotificationRepository
+import org.example.adminfoodapp.utils.AppModeManager
 import org.example.adminfoodapp.utils.SessionManager
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -19,7 +20,7 @@ val repositoryModule = module {
     single { CloudinaryUploader() }
     single { OneSignalApi() }
     single { SessionManager(get()) }
-
+    single { AppModeManager(get()) }
     single { FirebaseAuthenticationDataSource(get(), get()) }
     single { FirebaseMenuDataSource(get(), get(), get()) }
 

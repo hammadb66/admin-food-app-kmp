@@ -1,9 +1,7 @@
-// jvmMain/utils/NetworkMonitor.jvm.kt
 package org.example.adminfoodapp.utils
 
 import kotlinx.coroutines.*
-import java.net.InetSocketAddress
-import java.net.Socket
+import java.net.InetAddress
 
 actual class NetworkMonitor {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -11,30 +9,28 @@ actual class NetworkMonitor {
 
     actual fun register(onAvailable: () -> Unit, onLost: () -> Unit) {
         monitorJob?.cancel()
-        var wasConnected: Boolean? = null   // null = pehli baar check ho raha hai
+        var wasConnected: Boolean? = null
 
         monitorJob = scope.launch {
             while (isActive) {
                 val connected = isInternetAvailable()
-
                 if (wasConnected != connected) {
                     if (connected) onAvailable() else onLost()
                     wasConnected = connected
                 }
-
-                delay(3000)
+                delay(30_000)   // 👈 3 sec → 30 sec
             }
         }
     }
 
-    private fun isInternetAvailable(): Boolean {
-        return try {
-            Socket().use {
-                it.connect(InetSocketAddress("8.8.8.8", 53), 1500)
-                true
-            }
-        } catch (e: Exception) {
-            false
-        }
+    actual fun unregister() {
+        monitorJob?.cancel()
+        monitorJob = null
+    }
+
+    private fun isInternetAvailable(): Boolean = try {
+        InetAddress.getByName("1.1.1.1").isReachable(2000)
+    } catch (_: Exception) {
+        false
     }
 }

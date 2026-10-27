@@ -185,7 +185,7 @@ class OrderBillingViewModel(
 
     // Confirm Batch Decrement / Cancellation Reason
 // Confirm Batch Decrement / Cancellation Reason
-    fun confirmBatchVoid(reason: String,tableNumber: String) {
+    fun confirmBatchVoid(reason: String, tableNumber: String) {
         val orderId = activeOrderId ?: return
         viewModelScope.launch {
             val voidItems = mutableListOf<VoidLogBatchItem>()
@@ -206,14 +206,20 @@ class OrderBillingViewModel(
             }
 
             if (voidItems.isNotEmpty()) {
-                // 👈 1. Pass currentTableId to repository
-                repository.processBatchVoid("Dine-In $tableNumber[$customerName]",orderId, currentTableId, voidItems, reason, decreasedItemsMap)
+                // 👇 FIX: _customerName.value use karo, customerName nahi
+                val customerLabel = "Dine-In $tableNumber[${_customerName.value}]"
+                repository.processBatchVoid(
+                    customerLabel,
+                    orderId,
+                    currentTableId,
+                    voidItems,
+                    reason,
+                    decreasedItemsMap
+                )
 
-                // 👈 2. Check if all items in UI were deleted (workingQuantity == 0)
                 val remainingItemsCount = _billItems.value.count { it.workingQuantity > 0 }
                 if (remainingItemsCount == 0) {
                     activeOrderId = null
-                    // Screen ko auto navigate back / finish kar do
                     _checkoutSuccess.emit(Unit)
                 }
             }
@@ -230,7 +236,6 @@ class OrderBillingViewModel(
 
             val orderType = "DINE_IN"
 
-            println(activeOrderId)
             if (activeOrderId == null) {
                 activeOrderId = repository.createOrder(
                     customerName = _customerName.value.ifEmpty { "Walk-in Customer" },
@@ -271,7 +276,6 @@ class OrderBillingViewModel(
     // Checkout
     fun checkoutAndFreeTable() {
         val orderId = activeOrderId ?: return
-        println(activeOrderId)
 
         viewModelScope.launch {
             val subtotal = _billItems.value.sumOf { it.price * it.workingQuantity }

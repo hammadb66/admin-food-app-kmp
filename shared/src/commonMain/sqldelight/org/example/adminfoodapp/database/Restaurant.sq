@@ -176,7 +176,7 @@ CREATE TABLE UserEntity (
     AND (
         customerName LIKE '%' || :searchQuery || '%'
         OR customerNumber LIKE '%' || :searchQuery || '%'
-        OR CAST(tableId AS TEXT) LIKE '%' || :searchQuery || '%'
+        OR CAST(COALESCE(tableId, 0) AS TEXT) LIKE '%' || :searchQuery || '%'
     )
     ORDER BY createdAt DESC;
 
@@ -220,3 +220,68 @@ CREATE TABLE UserEntity (
     -- 7. Count check karna (Auto-Admin Seeding ke liye)
     getUsersCount:
     SELECT COUNT(*) FROM UserEntity;
+
+
+
+    -- ================================================================
+    -- BACKUP / RESTORE QUERIES (for JSON export/import)
+    -- ================================================================
+
+    getAllOrdersRaw:
+    SELECT * FROM OrdersEntity;
+
+    getAllOrderItemsRaw:
+    SELECT * FROM OrderItemsEntity;
+
+    getAllVoidLogsRaw:
+    SELECT * FROM VoidLogsEntity;
+
+    -- Clear everything (order matters: children first)
+    deleteAllOrderItems:
+    DELETE FROM OrderItemsEntity;
+
+    deleteAllVoidLogs:
+    DELETE FROM VoidLogsEntity;
+
+    deleteAllOrders:
+    DELETE FROM OrdersEntity;
+
+    deleteAllMenuItems:
+    DELETE FROM GenralItemsEntity;
+
+    deleteAllTables:
+    DELETE FROM TablesEntity;
+
+    deleteAllUsers:
+    DELETE FROM UserEntity;
+
+    -- Restore with explicit IDs
+    restoreTable:
+    INSERT INTO TablesEntity(id, tableNumber, capacity, status)
+    VALUES (?, ?, ?, ?);
+
+    restoreMenuItem:
+    INSERT INTO GenralItemsEntity(id, itemName, price, category)
+    VALUES (?, ?, ?, ?);
+
+    restoreOrder:
+    INSERT INTO OrdersEntity(
+        id, tableId, customerName, customerNumber, orderType,
+        subtotal, discountType, discountValue, discountAmount,
+        totalAmount, orderStatus, createdAt, createdByID, createdByName
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+    restoreOrderItem:
+    INSERT INTO OrderItemsEntity(
+        id, orderId, menuItemId, itemName, quantity, printedQuantity, price
+    ) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+    restoreVoidLog:
+    INSERT INTO VoidLogsEntity(
+        id, orderId, itemName, cancelledQuantity, unitPrice,
+        reason, createdAt, voidByID, voidedByName, customerName
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+    restoreUser:
+    INSERT INTO UserEntity(id, name, password, isAdmin, userAccess)
+    VALUES (?, ?, ?, ?, ?);

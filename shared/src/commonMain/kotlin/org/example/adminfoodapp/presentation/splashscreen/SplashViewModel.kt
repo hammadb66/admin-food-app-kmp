@@ -10,6 +10,7 @@ import org.example.adminfoodapp.utils.AppTrialManager // 👈 IMPORT KIA
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.example.adminfoodapp.utils.SessionManager
 import org.example.adminfoodapp.utils.Utils.ISADMIN
 import org.example.adminfoodapp.utils.Utils.ISUSERACCESS
 import java.io.File
@@ -17,6 +18,8 @@ import java.io.File
 class SplashViewModel(
     private val currentUserUseCase: CurrentUserUseCase,
     private val settings: Settings,
+    private val sessionManager: SessionManager
+
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<Resource<UserModel>>(Resource.Loading)
@@ -27,7 +30,14 @@ class SplashViewModel(
     val isTrialActive: StateFlow<Boolean> = _isTrialActive
 
     fun checkConnectionAndFetchUser() {
-        val appDataDir = File(System.getProperty("user.home"), ".adminfoodapp")
+        // 🔥 SECURITY: App open hote hi session clear kar do taake har baar login maange
+        sessionManager.clearSession()
+
+        _isTrialActive.value = true
+        // Direct login screen pe bhejne ke liye error state trigger karein
+        _state.value = Resource.Error("Please login to continue")
+        return
+/*        val appDataDir = File(System.getProperty("user.home"), ".adminfoodapp")
         val isValid = AppTrialManager.isTrialValid(settings, appDataDir)
 
         if (isValid) {
@@ -36,7 +46,7 @@ class SplashViewModel(
         } else {
             _isTrialActive.value = false
             _state.value = Resource.Error("Trial Expired or Date Tampered!")
-        }
+        }*/
     }
 
     fun currentUser() {

@@ -3,6 +3,10 @@ package org.example.adminfoodapp.di
 import android.app.Application
 import com.russhwolf.settings.PreferencesSettings
 import com.russhwolf.settings.Settings
+import org.example.adminfoodapp.utils.FileExporter
+import org.example.adminfoodapp.utils.FileImporter
+import org.example.adminfoodapp.utils.JvmFileExporter
+import org.example.adminfoodapp.utils.JvmFileImporter
 import org.example.adminfoodapp.utils.NetworkMonitor
 import org.koin.dsl.module
 import org.koin.core.module.Module
@@ -15,4 +19,6 @@ actual val platformModule: Module = module {
     }  //for share preference
 
     single { NetworkMonitor() }  //for networkMonitor
+    single<FileExporter> { JvmFileExporter() }
+    single<FileImporter> { JvmFileImporter() }
 }

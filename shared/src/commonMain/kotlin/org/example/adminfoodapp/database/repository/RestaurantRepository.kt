@@ -6,8 +6,12 @@
     import kotlinx.coroutines.delay
     import kotlinx.coroutines.flow.Flow
     import kotlinx.coroutines.flow.flow
+    import kotlinx.coroutines.flow.map
     import kotlinx.coroutines.withContext
     import org.example.adminfoodapp.database.*
+    import org.example.adminfoodapp.database.backup.AutoBackupService
+    import org.example.adminfoodapp.database.backup.DatabaseBackupService
+    import org.example.adminfoodapp.database.backup.saveBackupFile
     import org.example.adminfoodapp.database.model.QuickPendingOrder
     import org.example.adminfoodapp.utils.MainActivityUiState
     import org.example.adminfoodapp.utils.ORDERSTATUS
@@ -196,6 +200,8 @@
             if (tableId != null && tableId > 0) {
                 dbQueries.updateTableStatus(0, tableId)
             }
+            autoBackupService.scheduleBackup()
+
         }
 
         fun createOrder(
@@ -316,6 +322,8 @@
                     )
                 }
             }
+            autoBackupService.scheduleBackup()
+
         }
 
         fun updateTable(id: Long, tableId: String, capacity: Long) {
@@ -351,10 +359,10 @@
         }
 
         // Repository Methods Inside RestaurantRepositoryImpl Class
-        fun getDashboardAnalytics(): Flow<MainActivityUiState> = flow {
-            val calendar = java.util.Calendar.getInstance()
+        // RestaurantRepository.kt mein getDashboardAnalytics() function ko is se replace karein
 
-            // Today Start & End Timestamps
+        fun getDashboardAnalytics(): Flow<MainActivityUiState> {
+            val calendar = java.util.Calendar.getInstance()
             calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
             calendar.set(java.util.Calendar.MINUTE, 0)
             calendar.set(java.util.Calendar.SECOND, 0)
@@ -365,24 +373,23 @@
             calendar.set(java.util.Calendar.SECOND, 59)
             val endOfToday = calendar.timeInMillis
 
-            // Queries to SQLDelight DB
-            val todayOrders = dbQueries.getOrdersHistory(startOfToday, endOfToday, "").executeAsList()
-            val activeTables = dbQueries.getAllTables().executeAsList().filter { it.status == TABLESTATUS.OCCUPIED.id }
+            return dbQueries.getOrdersHistory(startOfToday, endOfToday, "")
+                .asFlow()
+                .mapToList(Dispatchers.IO)
+                .map { todayOrders: List<OrdersEntity> ->
+                    val todayTotalEarnings = todayOrders
+                        .filter { it.orderStatus == ORDERSTATUS.COMPLETE.id }
+                        .sumOf { it.totalAmount }
 
-            // Calculations
-            val todayTotalEarnings = todayOrders.sumOf { it.totalAmount }
-            val completedOrdersToday = todayOrders.count { it.orderStatus == ORDERSTATUS.COMPLETE.id }
-            val pendingOrdersToday = todayOrders.count { it.orderStatus == ORDERSTATUS.PENDING.id }
+                    val completedOrdersToday = todayOrders.count { it.orderStatus == ORDERSTATUS.COMPLETE.id }
 
-            emit(
-                MainActivityUiState(
-                    totalLocalEarnings = todayTotalEarnings.toInt(),
-                    localCompleteOrders = completedOrdersToday,
-                    localPendingOrders = activeTables.size + pendingOrdersToday,
-                    isLoading = false,
-                    errorMessage = null
-                )
-            )
+                    MainActivityUiState(
+                        totalLocalEarnings = todayTotalEarnings.toInt(),
+                        localCompleteOrders = completedOrdersToday,
+                        isLoading = false,
+                        errorMessage = null
+                    )
+                }
         }
 
         fun getRealPendingOrders(): Flow<List<QuickPendingOrder>> = flow {
@@ -437,6 +444,30 @@
 
                 // 2 Second wait karein phir dobara live check karein
                 delay(2000L)
+            }
+        }
+
+
+
+        // ------------------------------------------------
+// BACKUP / RESTORE
+// ------------------------------------------------
+        private val backupService by lazy {
+            DatabaseBackupService(database)
+        }
+        private val autoBackupService by lazy { AutoBackupService(database) }
+        suspend fun exportBackupJson(): String = backupService.exportToJsonString()
+
+        suspend fun importBackupJson(jsonString: String): Result<Unit> =
+            backupService.importFromJsonString(jsonString)
+
+        suspend fun saveBackupToFile(fileName: String): String? {
+            return try {
+                val jsonContent = exportBackupJson()
+                saveBackupFile(jsonContent, fileName)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
             }
         }
 
